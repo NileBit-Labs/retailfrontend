@@ -35,7 +35,13 @@ async function onSubmit() {
       <input id="email" v-model="email" type="email" required autocomplete="email" />
 
       <label for="password">Password</label>
-      <input id="password" v-model="password" type="password" required autocomplete="current-password" />
+      <input
+        id="password"
+        v-model="password"
+        type="password"
+        required
+        autocomplete="current-password"
+      />
 
       <button type="submit" :disabled="loading">{{ loading ? 'Logging in…' : 'Log in' }}</button>
 

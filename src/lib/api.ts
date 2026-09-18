@@ -1,4 +1,10 @@
-const BASE_URL = import.meta.env.VITE_API_URL as string
+const BASE_URL = import.meta.env.VITE_API_URL as string | undefined
+
+if (!BASE_URL) {
+  throw new Error(
+    'VITE_API_URL is not set. Copy .env.example to .env (see CONTRIBUTING.md) and restart the dev server.',
+  )
+}
 
 export class ApiError extends Error {
   status: number
@@ -30,7 +36,9 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
   const token = localStorage.getItem('auth_token')
   if (token) headers.Authorization = `Bearer ${token}`
 
-  const shopId = options.shopId ?? (JSON.parse(localStorage.getItem('current_shop') ?? 'null')?.id as number | undefined)
+  const shopId =
+    options.shopId ??
+    (JSON.parse(localStorage.getItem('current_shop') ?? 'null')?.id as number | undefined)
   if (shopId) headers['X-Shop-Id'] = String(shopId)
 
   const response = await fetch(`${BASE_URL}${path}`, {

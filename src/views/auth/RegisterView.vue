@@ -57,11 +57,11 @@ async function onSubmit() {
         autocomplete="new-password"
       />
 
-      <button type="submit" :disabled="loading">{{ loading ? 'Creating…' : 'Create account' }}</button>
+      <button type="submit" :disabled="loading">
+        {{ loading ? 'Creating…' : 'Create account' }}
+      </button>
 
-      <p class="switch">
-        Already have an account? <RouterLink to="/login">Log in</RouterLink>
-      </p>
+      <p class="switch">Already have an account? <RouterLink to="/login">Log in</RouterLink></p>
     </form>
   </main>
 </template>

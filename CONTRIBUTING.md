@@ -8,10 +8,11 @@ Vue 3 + Vite + TypeScript app for NileBit Retail POS.
 git clone https://github.com/NileBit-Labs/retailfrontend.git
 cd retailfrontend
 npm install
+cp .env.example .env
 npm run dev
 ```
 
-App is now at `http://localhost:5173`. It expects the backend (`retailbackend`) running at `http://localhost:8000` — API wiring (base client, auth token handling) is part of the Foundation track below and isn't built yet.
+App is now at `http://localhost:5173`. It expects the backend (`retailbackend`, see its own CONTRIBUTING.md) running at `http://localhost:8000` — `.env`'s `VITE_API_URL` points at it. The app will refuse to start without `.env` present (fails loudly rather than silently calling the wrong URL).
 
 Run `npm run build` before opening a PR — it must pass (type-check + build).
 
