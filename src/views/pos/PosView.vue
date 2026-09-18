@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import BaseModal from '@/components/BaseModal.vue'
+import CustomerPicker from '@/components/customers/CustomerPicker.vue'
 import CheckoutDialog from '@/components/pos/CheckoutDialog.vue'
 import ReceiptView from '@/components/pos/ReceiptView.vue'
 import { formatQuantity, formatUgx } from '@/lib/format'
@@ -19,6 +20,7 @@ const sync = useSyncStore()
 const search = ref('')
 const category = ref<string | null>(null)
 const showCheckout = ref(false)
+const showPicker = ref(false)
 const cartOpen = ref(false)
 const searchInput = ref<HTMLInputElement | null>(null)
 const receipt = ref<{ sale: Sale; tendered: number; change: number } | null>(null)
@@ -262,6 +264,22 @@ async function share() {
       </div>
 
       <footer v-if="cart.itemCount" class="cart-foot">
+        <div class="customer-row">
+          <button type="button" class="customer-btn" @click="showPicker = true">
+            <span class="customer-name">{{ cart.customer?.name ?? 'Walk-in customer' }}</span>
+            <small>{{ cart.customer ? 'Change' : 'Add customer' }}</small>
+          </button>
+          <button
+            v-if="cart.customer"
+            type="button"
+            class="line-remove"
+            aria-label="Remove customer"
+            @click="cart.setCustomer(null)"
+          >
+            ×
+          </button>
+        </div>
+
         <dl class="sums">
           <div>
             <dt>Subtotal</dt>
@@ -297,6 +315,17 @@ async function share() {
         </button>
       </footer>
     </aside>
+
+    <CustomerPicker
+      v-if="showPicker"
+      @close="showPicker = false"
+      @pick="
+        (c) => {
+          cart.setCustomer(c)
+          showPicker = false
+        }
+      "
+    />
 
     <CheckoutDialog
       v-if="showCheckout"
@@ -648,6 +677,42 @@ async function share() {
 .cart-foot {
   padding: 1rem 1.25rem 1.25rem;
   border-top: 1px solid var(--color-border);
+}
+
+.customer-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.875rem;
+}
+
+.customer-btn {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  min-height: 44px;
+  padding: 0 0.875rem;
+  border: 1px dashed var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.customer-btn small {
+  color: var(--color-primary);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+.customer-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sums {

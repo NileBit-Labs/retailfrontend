@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, onMounted, ref } from 'vue'
 import BaseModal from '@/components/BaseModal.vue'
 import { apiErrorMessage } from '@/lib/api'
 import { formatUgx } from '@/lib/format'
@@ -22,9 +22,23 @@ const canGiveChange = computed(
   () =>
     change.value === 0 || rows.value.some((r) => r.method === 'CASH' && r.amount >= change.value),
 )
+// A short payment is fine when there is a customer to owe the rest.
+const onCredit = computed(() => remaining.value > 0 && !!cart.customer)
 const canConfirm = computed(
-  () => remaining.value === 0 && canGiveChange.value && tendered.value > 0 && !submitting.value,
+  () =>
+    !submitting.value &&
+    (onCredit.value || (remaining.value === 0 && canGiveChange.value && tendered.value > 0)),
 )
+
+const isoDate = (offsetDays: number) => {
+  const d = new Date()
+  d.setDate(d.getDate() + offsetDays)
+  return d.toISOString().slice(0, 10)
+}
+const today = isoDate(0)
+onMounted(() => {
+  if (!cart.dueDate) cart.dueDate = isoDate(14)
+})
 
 // Quick cash amounts: exact, then the next round notes up from the total.
 const quickAmounts = computed(() => {
@@ -133,9 +147,22 @@ async function confirm() {
     </button>
 
     <div class="summary">
-      <div v-if="remaining > 0" class="short">
-        <span>Still to pay</span><strong>{{ formatUgx(remaining) }}</strong>
-      </div>
+      <template v-if="onCredit && cart.customer">
+        <div class="credit">
+          <span>On {{ cart.customer.name }}'s account</span
+          ><strong>{{ formatUgx(remaining) }}</strong>
+        </div>
+        <div class="field due-date">
+          <label for="due-date">Pay by</label>
+          <input id="due-date" v-model="cart.dueDate" type="date" :min="today" />
+        </div>
+      </template>
+      <template v-else-if="remaining > 0">
+        <div class="short">
+          <span>Still to pay</span><strong>{{ formatUgx(remaining) }}</strong>
+        </div>
+        <p class="hint">Add a customer to the sale to put the rest on credit.</p>
+      </template>
       <div v-else-if="change > 0" class="change">
         <span>Change to give</span><strong>{{ formatUgx(change) }}</strong>
       </div>
@@ -150,7 +177,7 @@ async function confirm() {
       :disabled="!canConfirm"
       @click="confirm"
     >
-      {{ submitting ? 'Recording sale…' : 'Confirm sale' }}
+      {{ submitting ? 'Recording sale…' : onCredit ? 'Confirm sale on credit' : 'Confirm sale' }}
     </button>
   </BaseModal>
 </template>
@@ -271,6 +298,26 @@ async function confirm() {
 .summary .short {
   background: var(--color-danger-soft);
   color: var(--color-danger);
+}
+
+.summary .credit {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.summary .due-date {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  gap: 0.375rem;
+  margin-top: 0.75rem;
+  padding: 0;
+}
+
+.hint {
+  margin-top: 0.5rem;
+  color: var(--color-ink-faint);
+  font-size: 0.8125rem;
 }
 
 .summary .change {

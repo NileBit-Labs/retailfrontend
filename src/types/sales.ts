@@ -61,6 +61,8 @@ export interface Sale {
   amount_due: number
   created_at: string
   void_reason: string | null
+  due_date?: string | null
+  customer?: { id: number; name: string; phone?: string | null } | null
   cashier?: { id: number; name: string }
   items?: SaleItem[]
   items_count?: number

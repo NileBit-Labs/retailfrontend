@@ -60,6 +60,24 @@ const router = createRouter({
       meta: { requiresAuth: true, title: 'Sale' },
     },
     {
+      path: '/customers',
+      name: 'customers',
+      component: () => import('../views/customers/CustomersView.vue'),
+      meta: { requiresAuth: true, title: 'Customers' },
+    },
+    {
+      path: '/customers/:id',
+      name: 'customer-detail',
+      component: () => import('../views/customers/CustomerDetailView.vue'),
+      meta: { requiresAuth: true, title: 'Customer' },
+    },
+    {
+      path: '/credit',
+      name: 'credit',
+      component: () => import('../views/customers/CreditView.vue'),
+      meta: { requiresAuth: true, title: 'Credit' },
+    },
+    {
       path: '/sync',
       name: 'sync',
       component: () => import('../views/sync/SyncQueueView.vue'),

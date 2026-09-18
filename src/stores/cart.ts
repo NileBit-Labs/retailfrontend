@@ -31,7 +31,7 @@ export interface PaymentInput {
 // A receipt for a sale that only exists on this device so far (id 0).
 export function provisionalSale(event: OutboxEvent): Sale {
   const shop = useShopStore().currentShop
-  const { lines, subtotal, discount, total, payments } = event.summary
+  const { lines, subtotal, discount, total, payments, amountDue, customer } = event.summary
   return {
     id: 0,
     sale_number: 'Not synced yet',
@@ -40,7 +40,8 @@ export function provisionalSale(event: OutboxEvent): Sale {
     discount,
     total,
     amount_paid: payments.reduce((sum, p) => sum + p.amount, 0),
-    amount_due: 0,
+    amount_due: amountDue ?? 0,
+    customer: customer ?? null,
     created_at: event.clientCreatedAt,
     void_reason: null,
     cashier: { id: event.userId, name: event.cashierName },
@@ -76,6 +77,8 @@ export const useCartStore = defineStore('cart', () => {
   // One key per sale attempt: if the request is retried after a dropped
   // connection the server recognises it and never records the sale twice.
   const attemptKey = ref(uuid())
+  const customer = ref<{ id: number; name: string; phone: string | null } | null>(null)
+  const dueDate = ref('')
 
   const lineTotal = (line: CartLine) => roundMoney(line.quantity * line.unitPrice) - line.discount
   const subtotal = computed(() =>
@@ -163,6 +166,10 @@ export const useCartStore = defineStore('cart', () => {
     orderDiscount.value = Math.min(Math.max(Math.round(discount) || 0, 0), Math.max(room, 0))
   }
 
+  function setCustomer(next: { id: number; name: string; phone: string | null } | null) {
+    customer.value = next
+  }
+
   function remove(line: CartLine) {
     lines.value = lines.value.filter((l) => l.id !== line.id)
     if (!lines.value.length) orderDiscount.value = 0
@@ -171,6 +178,8 @@ export const useCartStore = defineStore('cart', () => {
   function clear() {
     lines.value = []
     orderDiscount.value = 0
+    customer.value = null
+    dueDate.value = ''
     attemptKey.value = uuid()
   }
 
@@ -181,11 +190,16 @@ export const useCartStore = defineStore('cart', () => {
     const snapshot = lines.value.map((l) => ({ ...l }))
     const due = total.value
     const key = attemptKey.value
+    const buyer = customer.value ? { ...customer.value } : null
+    const paidNow = payments.reduce((sum, p) => sum + p.amount, 0)
+    const onCredit = paidNow < due
 
     const body = {
       idempotency_key: key,
       // Used only when the sale is synced later, to detect a price change.
       expected_total: due,
+      customer_id: buyer?.id,
+      due_date: onCredit && dueDate.value ? dueDate.value : undefined,
       discount: orderDiscount.value || undefined,
       items: snapshot.map((l) => ({
         product_id: l.productId,
@@ -213,7 +227,7 @@ export const useCartStore = defineStore('cart', () => {
       // The server said no (bad stock, validation...): tell the cashier.
       // If it simply couldn't be reached, keep the sale on this device.
       if (!isNetworkFailure(e) || !shop) throw e
-      sale = await saveOffline(shop.id, key, body, snapshot, payments, due)
+      sale = await saveOffline(shop.id, key, body, snapshot, payments, due, buyer)
     }
 
     clear()
@@ -230,6 +244,7 @@ export const useCartStore = defineStore('cart', () => {
     snapshot: CartLine[],
     payments: PaymentInput[],
     due: number,
+    buyer: { id: number; name: string } | null,
   ): Promise<Sale> {
     const sync = useSyncStore()
     const summaryLines = snapshot.map((l) => ({
@@ -261,6 +276,8 @@ export const useCartStore = defineStore('cart', () => {
         subtotal: gross,
         discount: gross - due,
         total: due,
+        amountDue: due - recorded.reduce((sum, p) => sum + p.amount, 0),
+        customer: buyer ? { id: buyer.id, name: buyer.name } : null,
         payments: recorded.filter((p) => p.amount > 0),
       },
     })
@@ -270,6 +287,8 @@ export const useCartStore = defineStore('cart', () => {
 
   return {
     lines,
+    customer,
+    dueDate,
     orderDiscount,
     subtotal,
     discountTotal,
@@ -282,6 +301,7 @@ export const useCartStore = defineStore('cart', () => {
     setUnit,
     setLineDiscount,
     setOrderDiscount,
+    setCustomer,
     remove,
     clear,
     checkout,

@@ -33,6 +33,8 @@ export interface OutboxEvent {
     subtotal: number
     discount: number
     total: number
+    amountDue: number
+    customer?: { id: number; name: string } | null
     payments: { method: PaymentMethod; amount: number }[]
   }
 }

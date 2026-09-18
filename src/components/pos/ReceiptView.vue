@@ -34,6 +34,10 @@ const paidIn = computed(() => (props.sale.payments ?? []).filter((p) => p.direct
         <dt>Served by</dt>
         <dd>{{ sale.cashier.name }}</dd>
       </div>
+      <div v-if="sale.customer">
+        <dt>Customer</dt>
+        <dd>{{ sale.customer.name }}</dd>
+      </div>
     </dl>
 
     <table class="lines">
@@ -77,8 +81,12 @@ const paidIn = computed(() => (props.sale.payments ?? []).filter((p) => p.direct
         <dd>{{ formatUgx(change) }}</dd>
       </div>
       <div v-if="sale.amount_due > 0" class="due">
-        <dt>Balance due</dt>
+        <dt>On credit</dt>
         <dd>{{ formatUgx(sale.amount_due) }}</dd>
+      </div>
+      <div v-if="sale.amount_due > 0 && sale.due_date" class="due">
+        <dt>Pay by</dt>
+        <dd>{{ sale.due_date }}</dd>
       </div>
     </dl>
 
