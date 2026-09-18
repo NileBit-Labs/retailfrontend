@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore, ApiError } from '@/stores/auth'
+import ThemeToggle from '@/components/ThemeToggle.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -27,6 +28,10 @@ async function onSubmit() {
 
 <template>
   <main class="auth-page">
+    <div class="theme-toggle-corner">
+      <ThemeToggle />
+    </div>
+
     <div class="auth-card card">
       <div class="brand-mark">N</div>
       <h1>Log in to NileBit Retail</h1>
@@ -66,11 +71,18 @@ async function onSubmit() {
 
 <style scoped>
 .auth-page {
+  position: relative;
   flex: 1;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
+}
+
+.theme-toggle-corner {
+  position: absolute;
+  top: 1.25rem;
+  right: 1.25rem;
 }
 
 .auth-card {

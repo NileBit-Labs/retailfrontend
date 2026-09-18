@@ -1,6 +1,17 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
-import HomeView from '../views/HomeView.vue'
+import { navGroups } from './nav'
+import DashboardView from '../views/DashboardView.vue'
+
+const comingSoonRoutes: RouteRecordRaw[] = navGroups
+  .flatMap((group) => group.items)
+  .filter((item) => item.to !== '/')
+  .map((item) => ({
+    path: item.to,
+    name: item.to.slice(1),
+    component: () => import('../views/ComingSoonView.vue'),
+    meta: { requiresAuth: true, title: item.label, owner: item.owner },
+  }))
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
@@ -8,7 +19,7 @@ const router = createRouter({
     {
       path: '/',
       name: 'home',
-      component: HomeView,
+      component: DashboardView,
       meta: { requiresAuth: true },
     },
     {
@@ -27,8 +38,9 @@ const router = createRouter({
       path: '/setup/shop',
       name: 'setup-shop',
       component: () => import('../views/shop/CreateShopView.vue'),
-      meta: { requiresAuth: true },
+      meta: { requiresAuth: true, standalone: true },
     },
+    ...comingSoonRoutes,
   ],
 })
 
