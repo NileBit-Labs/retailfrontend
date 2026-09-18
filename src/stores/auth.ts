@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { apiFetch, ApiError } from '@/lib/api'
+import { useShiftStore } from '@/stores/shift'
 import { useShopStore, type Shop } from '@/stores/shop'
 
 export interface Organization {
@@ -52,6 +53,7 @@ export const useAuthStore = defineStore('auth', () => {
     token.value = null
     localStorage.removeItem('auth_token')
     useShopStore().clearCurrentShop()
+    useShiftStore().reset()
   }
 
   async function register(payload: {

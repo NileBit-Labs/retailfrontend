@@ -5,6 +5,7 @@ import BaseModal from '@/components/BaseModal.vue'
 import CustomerPicker from '@/components/customers/CustomerPicker.vue'
 import CheckoutDialog from '@/components/pos/CheckoutDialog.vue'
 import ReceiptView from '@/components/pos/ReceiptView.vue'
+import ShiftBar from '@/components/pos/ShiftBar.vue'
 import { formatQuantity, formatUgx } from '@/lib/format'
 import { useCartStore } from '@/stores/cart'
 import { useCatalogStore } from '@/stores/catalog'
@@ -106,6 +107,7 @@ async function share() {
   <main class="pos">
     <section class="catalog">
       <div class="catalog-top">
+        <ShiftBar />
         <input
           ref="searchInput"
           v-model="search"

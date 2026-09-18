@@ -29,6 +29,7 @@ export const navGroups: NavGroup[] = [
         owner: 'Elioda — Sales/POS',
         ready: true,
       },
+      { label: 'Shifts', to: '/shifts', icon: 'shifts', owner: 'Elioda — Shifts', ready: true },
     ],
   },
   {

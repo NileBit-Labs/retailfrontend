@@ -84,6 +84,12 @@ const router = createRouter({
       meta: { requiresAuth: true, title: 'Expenses', managerOnly: true },
     },
     {
+      path: '/shifts',
+      name: 'shifts',
+      component: () => import('../views/shifts/ShiftsView.vue'),
+      meta: { requiresAuth: true, title: 'Shifts' },
+    },
+    {
       path: '/sync',
       name: 'sync',
       component: () => import('../views/sync/SyncQueueView.vue'),

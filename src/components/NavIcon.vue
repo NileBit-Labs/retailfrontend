@@ -31,6 +31,11 @@ defineProps<{ name: string }>()
       <line x1="5" y1="18" x2="14" y2="18" />
     </template>
 
+    <template v-else-if="name === 'shifts'">
+      <circle cx="12" cy="12" r="9" />
+      <polyline points="12 7 12 12 15.5 14" />
+    </template>
+
     <template v-else-if="name === 'products'">
       <rect x="4" y="7" width="16" height="13" rx="1.5" />
       <path d="M4 11h16" />
