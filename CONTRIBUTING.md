@@ -22,11 +22,20 @@ Run `npm run build` before opening a PR — it must pass (type-check + build).
 
 | Person | Track |
 | --- | --- |
-| Elioda Muhangi (CTO) | Foundation (login/auth, API client), POS/Sales screens, offline sync UX — also reviews/merges every PR |
-| Collins Shema (COO) | Products, Inventory, Suppliers, Purchases, Expenses screens |
-| Douglas Bagambe (CEO) | Customers/Credit, Users/Staff, Settings, Dashboard, Reports screens |
+| Elioda Muhangi (CTO) | Foundation (login/auth, API client), Sales/POS, offline sync, Customers & Credit, Expenses, Refunds & Shifts screens |
+| Collins Shema (COO) | Products, Inventory, Suppliers, Purchases screens |
+| Douglas Bagambe (CEO) | Users/Staff, Settings, Dashboard, Reports screens |
 
 Stick to your own module's views/components/stores unless coordinating a shared change (e.g. the Pinia `auth`/`shop` stores, shared layout/nav) — flag those in a PR description or ask before touching another track's files.
+
+## Patterns to follow
+
+- **Talk to the API only through `apiFetch`** (`src/lib/api.ts`). It adds the token and `X-Shop-Id`, times out after 15s, and turns failures into `ApiError`; use `apiErrorMessage(e)` to show a readable message and `isNetworkFailure(e)` to tell "the server said no" from "couldn't reach the server".
+- **Money is an integer number of UGX** everywhere; format it with `formatUgx`. Totals you show are for display — the server recomputes and is the authority.
+- **Writes that matter must survive a bad connection.** Give the action one idempotency key for its whole life and reuse it on retry (see the cart's checkout). Sales already queue offline; if your module adds a write that shops will do without internet, route it through the same outbox/sync path rather than inventing another.
+- **Follow the design tokens** in `src/assets/base.css` (`--color-*`, `--radius-*`, `.card`, `.btn`, `.field`) so light and dark mode both work. Don't hard-code colours; use `--color-on-primary` for text on primary backgrounds.
+- **Add your screen to `src/router/nav.ts`** with `ready: true` and a real route in `src/router/index.ts`; use `managerOnly: true` for screens cashiers shouldn't see (the server still enforces it).
+- **Test in a browser**, on a phone-sized viewport too. Type-checking and a build don't tell you the till is usable.
 
 ## Branching & PRs
 
