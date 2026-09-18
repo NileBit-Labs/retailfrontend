@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
-import { useAuthStore } from '@/stores/auth'
+import { ApiError, useAuthStore } from '@/stores/auth'
+import { useShopStore } from '@/stores/shop'
 import { navGroups } from './nav'
 import DashboardView from '../views/DashboardView.vue'
 
@@ -44,8 +45,9 @@ const router = createRouter({
   ],
 })
 
-router.beforeEach((to) => {
+router.beforeEach(async (to) => {
   const auth = useAuthStore()
+  const shopStore = useShopStore()
 
   if (to.meta.requiresAuth && !auth.isAuthenticated) {
     return { name: 'login' }
@@ -53,6 +55,32 @@ router.beforeEach((to) => {
 
   if (to.meta.guestOnly && auth.isAuthenticated) {
     return { name: 'home' }
+  }
+
+  if (!to.meta.requiresAuth) return
+
+  if (!auth.user) {
+    try {
+      await auth.fetchMe()
+    } catch (e) {
+      if (e instanceof ApiError && e.status === 401) {
+        auth.clearSession()
+        return { name: 'login' }
+      }
+      return
+    }
+  }
+
+  // The current shop is only cached locally, so a fresh browser or device has
+  // to resolve it from the account's own shops rather than asking the user to
+  // create another one.
+  if (!shopStore.currentShop) {
+    const existingShop = auth.user?.shop_roles[0]?.shop
+    if (existingShop) {
+      shopStore.setCurrentShop(existingShop)
+    } else if (!to.meta.standalone) {
+      return { name: 'setup-shop' }
+    }
   }
 })
 

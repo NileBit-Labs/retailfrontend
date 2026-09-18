@@ -119,11 +119,14 @@ async function onLogout() {
   position: sticky;
   top: 0;
   height: 100vh;
-  overflow-y: auto;
+  height: 100dvh;
+  overflow: hidden;
 }
 
 .nav {
   flex: 1;
+  min-height: 0;
+  overflow-y: auto;
   padding: 0.5rem 0.75rem;
 }
 
@@ -164,14 +167,17 @@ async function onLogout() {
 }
 
 .sidebar-footer {
+  flex-shrink: 0;
   padding: 0.875rem 1rem;
   border-top: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
   gap: 0.75rem;
 }
 
 .user-block {
+  width: 100%;
   display: flex;
   align-items: center;
   justify-content: space-between;

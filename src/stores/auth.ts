@@ -1,12 +1,18 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { apiFetch, ApiError } from '@/lib/api'
+import { useShopStore, type Shop } from '@/stores/shop'
 
 export interface Organization {
   id: number
   name: string
   default_currency: string
   timezone: string
+}
+
+export interface ShopRole {
+  role: string
+  shop: Shop
 }
 
 export interface User {
@@ -16,6 +22,7 @@ export interface User {
   phone: string | null
   organization_id: number | null
   organization: Organization | null
+  shop_roles: ShopRole[]
 }
 
 interface AuthResponse {
@@ -38,6 +45,7 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = null
     token.value = null
     localStorage.removeItem('auth_token')
+    useShopStore().clearCurrentShop()
   }
 
   async function register(payload: {
@@ -73,7 +81,7 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = await apiFetch<User>('/auth/me')
   }
 
-  return { user, token, isAuthenticated, register, login, logout, fetchMe }
+  return { user, token, isAuthenticated, register, login, logout, fetchMe, clearSession }
 })
 
 export { ApiError }
