@@ -1,9 +1,11 @@
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
-import { apiFetch } from '@/lib/api'
+import { apiFetch, isNetworkFailure } from '@/lib/api'
 import { uuid } from '@/lib/format'
 import { useCatalogStore } from '@/stores/catalog'
 import { useShopStore } from '@/stores/shop'
+import { useSyncStore } from '@/stores/sync'
+import type { OutboxEvent } from '@/lib/outbox'
 import type { PaymentMethod, PosProduct, ProductUnit, Sale } from '@/types/sales'
 
 export interface CartLine {
@@ -24,6 +26,45 @@ export interface PaymentInput {
   method: PaymentMethod
   amount: number
   reference?: string
+}
+
+// A receipt for a sale that only exists on this device so far (id 0).
+export function provisionalSale(event: OutboxEvent): Sale {
+  const shop = useShopStore().currentShop
+  const { lines, subtotal, discount, total, payments } = event.summary
+  return {
+    id: 0,
+    sale_number: 'Not synced yet',
+    status: 'completed',
+    subtotal,
+    discount,
+    total,
+    amount_paid: payments.reduce((sum, p) => sum + p.amount, 0),
+    amount_due: 0,
+    created_at: event.clientCreatedAt,
+    void_reason: null,
+    cashier: { id: event.userId, name: event.cashierName },
+    shop: shop
+      ? { id: shop.id, name: shop.name, phone: shop.phone, address: shop.address }
+      : undefined,
+    items: lines.map((l, i) => ({
+      id: i,
+      product_id: l.productId,
+      product_name: l.name,
+      quantity: l.quantity,
+      unit: l.unit,
+      unit_price: l.unitPrice,
+      discount: l.discount,
+      line_total: l.lineTotal,
+    })),
+    payments: payments.map((p, i) => ({
+      id: i,
+      method: p.method,
+      amount: p.amount,
+      reference: null,
+      direction: 'in',
+    })),
+  }
 }
 
 const roundMoney = (n: number) => Math.round(n)
@@ -134,35 +175,97 @@ export const useCartStore = defineStore('cart', () => {
   }
 
   async function checkout(payments: PaymentInput[]): Promise<Sale> {
-    const sale = await apiFetch<Sale>('/sales', {
-      method: 'POST',
-      body: {
-        idempotency_key: attemptKey.value,
-        discount: orderDiscount.value || undefined,
-        items: lines.value.map((l) => ({
-          product_id: l.productId,
-          quantity: l.quantity,
-          unit: l.unit,
-          discount: l.discount || undefined,
-        })),
-        payments: payments.map((p) => ({
-          method: p.method,
-          amount: p.amount,
-          reference: p.reference || undefined,
-        })),
-      },
-    })
-
-    const shopId = useShopStore().currentShop?.id
+    const shop = useShopStore().currentShop
     const catalog = useCatalogStore()
-    if (shopId) {
-      for (const line of lines.value) {
-        catalog.adjustStock(line.productId, -roundQty(line.quantity * line.conversion), shopId)
+    // Snapshot first: the cart is cleared as soon as the sale is settled.
+    const snapshot = lines.value.map((l) => ({ ...l }))
+    const due = total.value
+    const key = attemptKey.value
+
+    const body = {
+      idempotency_key: key,
+      // Used only when the sale is synced later, to detect a price change.
+      expected_total: due,
+      discount: orderDiscount.value || undefined,
+      items: snapshot.map((l) => ({
+        product_id: l.productId,
+        quantity: l.quantity,
+        unit: l.unit,
+        unit_price: l.unitPrice,
+        discount: l.discount || undefined,
+      })),
+      payments: payments.map((p) => ({
+        method: p.method,
+        amount: p.amount,
+        reference: p.reference || undefined,
+      })),
+    }
+
+    let sale: Sale
+    try {
+      sale = await apiFetch<Sale>('/sales', { method: 'POST', body })
+      if (shop) {
+        for (const line of snapshot) {
+          catalog.adjustStock(line.productId, -roundQty(line.quantity * line.conversion), shop.id)
+        }
       }
+    } catch (e) {
+      // The server said no (bad stock, validation...): tell the cashier.
+      // If it simply couldn't be reached, keep the sale on this device.
+      if (!isNetworkFailure(e) || !shop) throw e
+      sale = await saveOffline(shop.id, key, body, snapshot, payments, due)
     }
 
     clear()
     return sale
+  }
+
+  // The same idempotency key goes with the queued sale, so if the first
+  // attempt actually reached the server but the reply was lost, syncing it
+  // later is recognised as the same sale and not recorded twice.
+  async function saveOffline(
+    shopId: number,
+    localEventId: string,
+    body: Record<string, unknown>,
+    snapshot: CartLine[],
+    payments: PaymentInput[],
+    due: number,
+  ): Promise<Sale> {
+    const sync = useSyncStore()
+    const summaryLines = snapshot.map((l) => ({
+      productId: l.productId,
+      name: l.name,
+      quantity: l.quantity,
+      unit: l.unit,
+      conversion: l.conversion,
+      unitPrice: l.unitPrice,
+      discount: l.discount,
+      lineTotal: roundMoney(l.quantity * l.unitPrice) - l.discount,
+    }))
+    const gross = summaryLines.reduce((sum, l) => sum + roundMoney(l.quantity * l.unitPrice), 0)
+
+    // Record only what was actually kept, as the server does: change comes out of cash.
+    const recorded = payments.map((p) => ({ method: p.method, amount: p.amount }))
+    const excess = recorded.reduce((sum, p) => sum + p.amount, 0) - due
+    if (excess > 0) {
+      const cash = recorded.find((p) => p.method === 'CASH' && p.amount >= excess)
+      if (cash) cash.amount -= excess
+    }
+
+    const event: OutboxEvent = await sync.queueSale({
+      localEventId,
+      shopId,
+      payload: body,
+      summary: {
+        lines: summaryLines,
+        subtotal: gross,
+        discount: gross - due,
+        total: due,
+        payments: recorded.filter((p) => p.amount > 0),
+      },
+    })
+
+    return provisionalSale(event)
   }
 
   return {

@@ -24,6 +24,10 @@ export interface PosProduct {
   selling_price: number
   stock: number
   low_stock_threshold: number
+  status?: string
+  // What the server says is in stock; `stock` is that minus sales still
+  // waiting on this device to sync.
+  server_stock?: number
   units: ProductUnit[]
 }
 

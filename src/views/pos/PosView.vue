@@ -8,11 +8,13 @@ import { formatQuantity, formatUgx } from '@/lib/format'
 import { useCartStore } from '@/stores/cart'
 import { useCatalogStore } from '@/stores/catalog'
 import { useShopStore } from '@/stores/shop'
+import { useSyncStore } from '@/stores/sync'
 import type { PosProduct, Sale } from '@/types/sales'
 
 const catalog = useCatalogStore()
 const cart = useCartStore()
 const shopStore = useShopStore()
+const sync = useSyncStore()
 
 const search = ref('')
 const category = ref<string | null>(null)
@@ -133,7 +135,10 @@ async function share() {
           </button>
         </div>
 
-        <p v-if="catalog.notice" class="notice">{{ catalog.notice }}</p>
+        <p v-if="!sync.online" class="notice offline">
+          You're offline — keep selling. Sales are saved on this device and sync automatically.
+        </p>
+        <p v-else-if="catalog.notice" class="notice">{{ catalog.notice }}</p>
       </div>
 
       <div class="grid-wrap">
@@ -381,6 +386,11 @@ async function share() {
   border-color: var(--color-primary);
   background: var(--color-primary);
   color: var(--color-on-primary);
+}
+
+.notice.offline {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
 }
 
 .notice {

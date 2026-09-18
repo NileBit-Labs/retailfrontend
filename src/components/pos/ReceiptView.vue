@@ -11,6 +11,9 @@ const paidIn = computed(() => (props.sale.payments ?? []).filter((p) => p.direct
 <template>
   <div class="receipt">
     <div v-if="sale.status === 'voided'" class="voided">VOIDED</div>
+    <p v-if="sale.id === 0" class="offline-note">
+      Saved on this device — it gets its receipt number once it syncs.
+    </p>
 
     <header class="receipt-head">
       <h2>{{ sale.shop?.name }}</h2>
@@ -113,6 +116,16 @@ const paidIn = computed(() => (props.sale.payments ?? []).filter((p) => p.direct
   letter-spacing: 0.1em;
   opacity: 0.5;
   pointer-events: none;
+}
+
+.offline-note {
+  margin-bottom: 0.75rem;
+  padding: 0.5rem 0.625rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-soft);
+  color: var(--color-ink-soft);
+  font-size: 0.75rem;
+  text-align: center;
 }
 
 .receipt-head {

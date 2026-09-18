@@ -59,6 +59,12 @@ const router = createRouter({
       component: () => import('../views/sales/SaleDetailView.vue'),
       meta: { requiresAuth: true, title: 'Sale' },
     },
+    {
+      path: '/sync',
+      name: 'sync',
+      component: () => import('../views/sync/SyncQueueView.vue'),
+      meta: { requiresAuth: true, title: 'Sync' },
+    },
     ...comingSoonRoutes,
   ],
 })
