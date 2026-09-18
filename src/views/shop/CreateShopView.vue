@@ -45,61 +45,110 @@ async function onSubmit() {
 
 <template>
   <main class="setup-page">
-    <form class="setup-form" @submit.prevent="onSubmit">
+    <div class="setup-card card">
+      <p class="eyebrow">Step 2 of 2</p>
       <h1>Set up your shop</h1>
-      <p v-if="error" class="error">{{ error }}</p>
+      <p class="subtitle">A few details and you're ready to start selling.</p>
 
-      <label for="name">Shop name</label>
-      <input id="name" v-model="name" type="text" required />
+      <form class="setup-form" @submit.prevent="onSubmit">
+        <p v-if="error" class="alert-danger">{{ error }}</p>
 
-      <label for="business_type">Business type</label>
-      <select id="business_type" v-model="businessType" required>
-        <option value="" disabled>Choose one</option>
-        <option v-for="type in BUSINESS_TYPES" :key="type.value" :value="type.value">
-          {{ type.label }}
-        </option>
-      </select>
+        <div class="field">
+          <label for="name">Shop name</label>
+          <input
+            id="name"
+            v-model="name"
+            type="text"
+            required
+            placeholder="e.g. Kampala Road Shop"
+          />
+        </div>
 
-      <label for="phone">Phone (optional)</label>
-      <input id="phone" v-model="phone" type="tel" />
+        <div class="field">
+          <label for="business_type">Business type</label>
+          <select id="business_type" v-model="businessType" required>
+            <option value="" disabled>Choose one</option>
+            <option v-for="type in BUSINESS_TYPES" :key="type.value" :value="type.value">
+              {{ type.label }}
+            </option>
+          </select>
+        </div>
 
-      <label for="address">Address (optional)</label>
-      <input id="address" v-model="address" type="text" />
+        <div class="field-row">
+          <div class="field">
+            <label for="phone">Phone <span class="optional">(optional)</span></label>
+            <input id="phone" v-model="phone" type="tel" />
+          </div>
 
-      <button type="submit" :disabled="loading">{{ loading ? 'Creating…' : 'Create shop' }}</button>
-    </form>
+          <div class="field">
+            <label for="address">Address <span class="optional">(optional)</span></label>
+            <input id="address" v-model="address" type="text" />
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block" :disabled="loading">
+          {{ loading ? 'Creating…' : 'Create shop' }}
+        </button>
+      </form>
+    </div>
   </main>
 </template>
 
 <style scoped>
 .setup-page {
+  flex: 1;
   display: flex;
+  align-items: center;
   justify-content: center;
-  padding: 3rem 1rem;
+  padding: 1.5rem;
 }
+
+.setup-card {
+  width: 100%;
+  max-width: 460px;
+  padding: 2rem;
+}
+
+.eyebrow {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+
+h1 {
+  margin-top: 0.375rem;
+  font-size: 1.25rem;
+}
+
+.subtitle {
+  margin-top: 0.375rem;
+  color: var(--color-ink-faint);
+  font-size: 0.875rem;
+}
+
 .setup-form {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  width: 100%;
-  max-width: 400px;
+  gap: 1rem;
+  margin-top: 1.75rem;
 }
-label {
-  font-size: 0.85rem;
-  margin-top: 0.5rem;
+
+.field-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
 }
-input,
-select {
-  padding: 0.5rem;
-  font-size: 1rem;
+
+.optional {
+  font-weight: 400;
+  color: var(--color-ink-faint);
 }
-button {
-  margin-top: 1rem;
-  padding: 0.6rem;
-  font-size: 1rem;
-  cursor: pointer;
-}
-.error {
-  color: #c0392b;
+
+@media (max-width: 480px) {
+  .field-row {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

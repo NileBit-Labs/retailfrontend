@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { RouterLink, RouterView, useRouter } from 'vue-router'
-import HelloWorld from './components/HelloWorld.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const auth = useAuthStore()
@@ -13,84 +12,84 @@ async function onLogout() {
 </script>
 
 <template>
-  <header>
-    <img alt="Vue logo" class="logo" src="@/assets/logo.svg" width="125" height="125" />
+  <header v-if="auth.isAuthenticated" class="topbar">
+    <RouterLink to="/" class="brand">
+      <span class="brand-mark">N</span>
+      <span class="brand-name">NileBit<span class="brand-name-accent">Retail</span></span>
+    </RouterLink>
 
-    <div class="wrapper">
-      <HelloWorld msg="You did it!" />
-
-      <nav>
-        <RouterLink to="/">Home</RouterLink>
-        <RouterLink to="/about">About</RouterLink>
-        <RouterLink v-if="!auth.isAuthenticated" to="/login">Log in</RouterLink>
-        <a v-else href="#" @click.prevent="onLogout">Log out</a>
-      </nav>
-    </div>
+    <nav class="topbar-nav">
+      <span v-if="auth.user" class="user-name">{{ auth.user.name }}</span>
+      <button class="btn-link" @click="onLogout">Log out</button>
+    </nav>
   </header>
 
   <RouterView />
 </template>
 
 <style scoped>
-header {
-  line-height: 1.5;
-  max-height: 100vh;
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.875rem 1.5rem;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
 }
 
-.logo {
-  display: block;
-  margin: 0 auto 2rem;
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-decoration: none;
 }
 
-nav {
-  width: 100%;
-  font-size: 12px;
-  text-align: center;
-  margin-top: 2rem;
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary);
+  color: white;
+  font-weight: 700;
+  font-size: 0.875rem;
 }
 
-nav a.router-link-exact-active {
-  color: var(--color-text);
+.brand-name {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--color-ink);
+  letter-spacing: -0.01em;
 }
 
-nav a.router-link-exact-active:hover {
-  background-color: transparent;
+.brand-name-accent {
+  color: var(--color-primary);
+  font-weight: 500;
 }
 
-nav a {
-  display: inline-block;
-  padding: 0 1rem;
-  border-left: 1px solid var(--color-border);
+.topbar-nav {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
 }
 
-nav a:first-of-type {
-  border: 0;
+.user-name {
+  font-size: 0.875rem;
+  color: var(--color-ink-soft);
 }
 
-@media (min-width: 1024px) {
-  header {
-    display: flex;
-    place-items: center;
-    padding-right: calc(var(--section-gap) / 2);
-  }
+.btn-link {
+  background: none;
+  border: none;
+  padding: 0;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--color-ink-soft);
+  cursor: pointer;
+}
 
-  .logo {
-    margin: 0 2rem 0 0;
-  }
-
-  header .wrapper {
-    display: flex;
-    place-items: flex-start;
-    flex-wrap: wrap;
-  }
-
-  nav {
-    text-align: left;
-    margin-left: -1rem;
-    font-size: 1rem;
-
-    padding: 1rem 0;
-    margin-top: 1rem;
-  }
+.btn-link:hover {
+  color: var(--color-primary);
 }
 </style>

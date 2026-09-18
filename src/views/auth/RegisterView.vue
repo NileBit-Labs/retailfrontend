@@ -34,70 +34,104 @@ async function onSubmit() {
 
 <template>
   <main class="auth-page">
-    <form class="auth-form" @submit.prevent="onSubmit">
+    <div class="auth-card card">
+      <div class="brand-mark">N</div>
       <h1>Create your account</h1>
-      <p v-if="error" class="error">{{ error }}</p>
+      <p class="subtitle">Set up NileBit Retail for your business.</p>
 
-      <label for="name">Your name</label>
-      <input id="name" v-model="name" type="text" required autocomplete="name" />
+      <form class="auth-form" @submit.prevent="onSubmit">
+        <p v-if="error" class="alert-danger">{{ error }}</p>
 
-      <label for="organization_name">Business name</label>
-      <input id="organization_name" v-model="organizationName" type="text" required />
+        <div class="field">
+          <label for="name">Your name</label>
+          <input id="name" v-model="name" type="text" required autocomplete="name" />
+        </div>
 
-      <label for="email">Email</label>
-      <input id="email" v-model="email" type="email" required autocomplete="email" />
+        <div class="field">
+          <label for="organization_name">Business name</label>
+          <input id="organization_name" v-model="organizationName" type="text" required />
+        </div>
 
-      <label for="password">Password</label>
-      <input
-        id="password"
-        v-model="password"
-        type="password"
-        required
-        minlength="8"
-        autocomplete="new-password"
-      />
+        <div class="field">
+          <label for="email">Email</label>
+          <input id="email" v-model="email" type="email" required autocomplete="email" />
+        </div>
 
-      <button type="submit" :disabled="loading">
-        {{ loading ? 'Creating…' : 'Create account' }}
-      </button>
+        <div class="field">
+          <label for="password">Password</label>
+          <input
+            id="password"
+            v-model="password"
+            type="password"
+            required
+            minlength="8"
+            autocomplete="new-password"
+          />
+        </div>
 
-      <p class="switch">Already have an account? <RouterLink to="/login">Log in</RouterLink></p>
-    </form>
+        <button type="submit" class="btn btn-primary btn-block" :disabled="loading">
+          {{ loading ? 'Creating…' : 'Create account' }}
+        </button>
+      </form>
+
+      <p class="switch">
+        Already have an account?
+        <RouterLink class="link" to="/login">Log in</RouterLink>
+      </p>
+    </div>
   </main>
 </template>
 
 <style scoped>
 .auth-page {
+  flex: 1;
   display: flex;
+  align-items: center;
   justify-content: center;
-  padding: 3rem 1rem;
+  padding: 1.5rem;
 }
+
+.auth-card {
+  width: 100%;
+  max-width: 380px;
+  padding: 2rem;
+  text-align: center;
+}
+
+.brand-mark {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  margin: 0 auto 1rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary);
+  color: white;
+  font-weight: 700;
+  font-size: 1.125rem;
+}
+
+h1 {
+  font-size: 1.25rem;
+}
+
+.subtitle {
+  margin-top: 0.375rem;
+  color: var(--color-ink-faint);
+  font-size: 0.875rem;
+}
+
 .auth-form {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
-  width: 100%;
-  max-width: 360px;
+  gap: 1rem;
+  margin-top: 1.75rem;
+  text-align: left;
 }
-label {
-  font-size: 0.85rem;
-  margin-top: 0.5rem;
-}
-input {
-  padding: 0.5rem;
-  font-size: 1rem;
-}
-button {
-  margin-top: 1rem;
-  padding: 0.6rem;
-  font-size: 1rem;
-  cursor: pointer;
-}
-.error {
-  color: #c0392b;
-}
+
 .switch {
-  margin-top: 1rem;
-  font-size: 0.9rem;
+  margin-top: 1.5rem;
+  font-size: 0.875rem;
+  color: var(--color-ink-soft);
 }
 </style>
