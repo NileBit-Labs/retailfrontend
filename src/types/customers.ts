@@ -21,7 +21,7 @@ export interface Customer {
 
 export interface LedgerEntry {
   id: number
-  type: 'CREDIT_SALE' | 'PAYMENT' | 'SALE_VOID'
+  type: 'CREDIT_SALE' | 'PAYMENT' | 'SALE_VOID' | 'REFUND'
   amount: number
   balance_after: number
   note: string | null
@@ -32,4 +32,5 @@ export const LEDGER_LABELS: Record<LedgerEntry['type'], string> = {
   CREDIT_SALE: 'Sold on credit',
   PAYMENT: 'Repayment',
   SALE_VOID: 'Sale voided',
+  REFUND: 'Refund credited',
 }

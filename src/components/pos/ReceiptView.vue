@@ -90,6 +90,13 @@ const paidIn = computed(() => (props.sale.payments ?? []).filter((p) => p.direct
       </div>
     </dl>
 
+    <dl v-if="sale.refunds?.length" class="totals refunds">
+      <div v-for="refund in sale.refunds" :key="refund.id" class="refund-row">
+        <dt>Refunded (R-{{ refund.id }})</dt>
+        <dd>− {{ formatUgx(refund.total_refund) }}</dd>
+      </div>
+    </dl>
+
     <p v-if="sale.status === 'voided' && sale.void_reason" class="void-reason">
       Voided: {{ sale.void_reason }}
     </p>
@@ -220,6 +227,13 @@ dd {
 .totals .due {
   color: var(--color-danger);
   font-weight: 600;
+}
+
+.refunds {
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  border-top: 1px dashed var(--color-border-strong);
+  color: var(--color-danger);
 }
 
 .void-reason {

@@ -67,7 +67,36 @@ export interface Sale {
   items?: SaleItem[]
   items_count?: number
   payments?: SalePayment[]
+  refunds?: RefundRecord[]
   shop?: { id: number; name: string; phone: string | null; address: string | null }
+}
+
+export interface RefundRecord {
+  id: number
+  total_refund: number
+  cash_refund: number
+  balance_credit: number
+  method: PaymentMethod | null
+  reason: string
+  created_at: string
+  items: { id: number; sale_item_id: number; quantity: number; amount: number; restock: boolean }[]
+}
+
+export interface Refundable {
+  sale_item_id: number
+  product_name: string
+  unit: string
+  sold: number
+  refunded: number
+  remaining: number
+  net_value: number
+  remaining_value: number
+}
+
+export interface RefundPlan {
+  total_refund: number
+  cash_refund: number
+  balance_credit: number
 }
 
 export interface Paginated<T> {

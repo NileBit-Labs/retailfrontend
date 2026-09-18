@@ -3,6 +3,7 @@ import { onMounted, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import BaseModal from '@/components/BaseModal.vue'
 import ReceiptView from '@/components/pos/ReceiptView.vue'
+import RefundModal from '@/components/pos/RefundModal.vue'
 import { apiErrorMessage, apiFetch } from '@/lib/api'
 import { formatUgx } from '@/lib/format'
 import { useAuthStore } from '@/stores/auth'
@@ -14,6 +15,7 @@ const auth = useAuthStore()
 const sale = ref<Sale | null>(null)
 const error = ref('')
 const showVoid = ref(false)
+const showRefund = ref(false)
 const reason = ref('')
 const voiding = ref(false)
 const voidError = ref('')
@@ -79,6 +81,14 @@ onMounted(load)
         <button
           v-if="auth.canManage && sale.status === 'completed'"
           type="button"
+          class="btn"
+          @click="showRefund = true"
+        >
+          Refund
+        </button>
+        <button
+          v-if="auth.canManage && sale.status === 'completed' && !sale.refunds?.length"
+          type="button"
           class="btn danger"
           @click="showVoid = true"
         >
@@ -86,6 +96,18 @@ onMounted(load)
         </button>
       </div>
     </template>
+
+    <RefundModal
+      v-if="showRefund && sale"
+      :sale="sale"
+      @close="showRefund = false"
+      @done="
+        () => {
+          showRefund = false
+          load()
+        }
+      "
+    />
 
     <BaseModal v-if="showVoid && sale" title="Void this sale?" @close="showVoid = false">
       <p class="void-note">
