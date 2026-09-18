@@ -56,3 +56,14 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
 
   return data as T
 }
+
+// Laravel validation failures carry a generic top-level message ("... and 2
+// more errors"); the first field error is the one worth showing a cashier.
+export function apiErrorMessage(e: unknown): string {
+  if (e instanceof ApiError) {
+    const errors = (e.body as { errors?: Record<string, string[]> } | null)?.errors
+    const first = errors ? Object.values(errors)[0]?.[0] : undefined
+    return first ?? e.message
+  }
+  return 'Something went wrong. Please try again.'
+}

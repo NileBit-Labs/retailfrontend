@@ -6,7 +6,7 @@ import DashboardView from '../views/DashboardView.vue'
 
 const comingSoonRoutes: RouteRecordRaw[] = navGroups
   .flatMap((group) => group.items)
-  .filter((item) => item.to !== '/')
+  .filter((item) => item.to !== '/' && !item.ready)
   .map((item) => ({
     path: item.to,
     name: item.to.slice(1),
@@ -40,6 +40,24 @@ const router = createRouter({
       name: 'setup-shop',
       component: () => import('../views/shop/CreateShopView.vue'),
       meta: { requiresAuth: true, standalone: true },
+    },
+    {
+      path: '/pos',
+      name: 'pos',
+      component: () => import('../views/pos/PosView.vue'),
+      meta: { requiresAuth: true, title: 'Sell' },
+    },
+    {
+      path: '/sales',
+      name: 'sales',
+      component: () => import('../views/sales/SalesHistoryView.vue'),
+      meta: { requiresAuth: true, title: 'Sales history' },
+    },
+    {
+      path: '/sales/:id',
+      name: 'sale-detail',
+      component: () => import('../views/sales/SaleDetailView.vue'),
+      meta: { requiresAuth: true, title: 'Sale' },
     },
     ...comingSoonRoutes,
   ],

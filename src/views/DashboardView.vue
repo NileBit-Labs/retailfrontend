@@ -3,17 +3,10 @@ import { computed } from 'vue'
 import { useAuthStore } from '@/stores/auth'
 import { useShopStore } from '@/stores/shop'
 import NavIcon from '@/components/NavIcon.vue'
+import { formatUgx } from '@/lib/format'
 
 const auth = useAuthStore()
 const shopStore = useShopStore()
-
-function formatUgx(amount: number): string {
-  return new Intl.NumberFormat('en-UG', {
-    style: 'currency',
-    currency: 'UGX',
-    maximumFractionDigits: 0,
-  }).format(amount)
-}
 
 const today = computed(() =>
   new Date().toLocaleDateString('en-UG', { weekday: 'long', day: 'numeric', month: 'long' }),
@@ -463,7 +456,7 @@ h1 {
 .checklist li.done .checkbox {
   background: var(--color-primary);
   border-color: var(--color-primary);
-  color: white;
+  color: var(--color-on-primary);
 }
 
 /* Tables / empty states */

@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useShopStore } from '@/stores/shop'
-import { ApiError } from '@/stores/auth'
+import { ApiError, useAuthStore } from '@/stores/auth'
 
 const BUSINESS_TYPES = [
   { value: 'small_shop', label: 'Small retail shop / mini-mart' },
@@ -16,6 +16,7 @@ const BUSINESS_TYPES = [
 
 const router = useRouter()
 const shopStore = useShopStore()
+const auth = useAuthStore()
 
 const name = ref('')
 const businessType = ref('')
@@ -34,6 +35,7 @@ async function onSubmit() {
       phone: phone.value || undefined,
       address: address.value || undefined,
     })
+    await auth.fetchMe()
     await router.push('/')
   } catch (e) {
     error.value = e instanceof ApiError ? e.message : 'Something went wrong. Please try again.'

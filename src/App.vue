@@ -91,7 +91,7 @@ async function onLogout() {
   height: 28px;
   border-radius: var(--radius-sm);
   background: var(--color-primary);
-  color: white;
+  color: var(--color-on-primary);
   font-weight: 700;
   font-size: 0.875rem;
   flex-shrink: 0;

@@ -3,6 +3,7 @@ export interface NavItem {
   to: string
   icon: string
   owner: string
+  ready?: boolean
 }
 
 export interface NavGroup {
@@ -18,8 +19,14 @@ export const navGroups: NavGroup[] = [
   {
     label: 'Sales',
     items: [
-      { label: 'Sell', to: '/pos', icon: 'sell', owner: 'Elioda — Sales/POS' },
-      { label: 'Sales history', to: '/sales', icon: 'sales', owner: 'Elioda — Sales/POS' },
+      { label: 'Sell', to: '/pos', icon: 'sell', owner: 'Elioda — Sales/POS', ready: true },
+      {
+        label: 'Sales history',
+        to: '/sales',
+        icon: 'sales',
+        owner: 'Elioda — Sales/POS',
+        ready: true,
+      },
     ],
   },
   {

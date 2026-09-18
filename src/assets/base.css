@@ -2,6 +2,7 @@
   --color-primary: #0f766e;
   --color-primary-hover: #0b5c56;
   --color-primary-soft: #ecf7f6;
+  --color-on-primary: #ffffff;
 
   --color-ink: #1a1f2b;
   --color-ink-soft: #4b5567;
@@ -13,6 +14,7 @@
   --color-border-strong: #cbd0d8;
 
   --color-danger: #b3261e;
+  --color-on-danger: #ffffff;
   --color-danger-soft: #fdecec;
 
   --radius-sm: 6px;
@@ -29,6 +31,7 @@
     --color-primary: #2dd4bf;
     --color-primary-hover: #5eead4;
     --color-primary-soft: rgba(45, 212, 191, 0.14);
+    --color-on-primary: #04302b;
 
     --color-ink: #f1f5f9;
     --color-ink-soft: #b6bfcc;
@@ -40,6 +43,7 @@
     --color-border-strong: #3a4256;
 
     --color-danger: #f87171;
+    --color-on-danger: #3b0a08;
     --color-danger-soft: rgba(248, 113, 113, 0.14);
 
     --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.2), 0 4px 16px rgba(0, 0, 0, 0.3);
@@ -52,6 +56,7 @@
   --color-primary: #2dd4bf;
   --color-primary-hover: #5eead4;
   --color-primary-soft: rgba(45, 212, 191, 0.14);
+  --color-on-primary: #04302b;
 
   --color-ink: #f1f5f9;
   --color-ink-soft: #b6bfcc;
@@ -63,6 +68,7 @@
   --color-border-strong: #3a4256;
 
   --color-danger: #f87171;
+  --color-on-danger: #3b0a08;
   --color-danger-soft: rgba(248, 113, 113, 0.14);
 
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.2), 0 4px 16px rgba(0, 0, 0, 0.3);
@@ -177,7 +183,7 @@ textarea {
 
 .btn-primary {
   background: var(--color-primary);
-  color: white;
+  color: var(--color-on-primary);
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -204,4 +210,22 @@ textarea {
 
 .link:hover {
   text-decoration: underline;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .receipt-print,
+  .receipt-print * {
+    visibility: visible;
+  }
+
+  .receipt-print {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
 }

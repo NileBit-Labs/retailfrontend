@@ -1,0 +1,762 @@
+<script setup lang="ts">
+import { computed, onMounted, ref } from 'vue'
+import { RouterLink } from 'vue-router'
+import BaseModal from '@/components/BaseModal.vue'
+import CheckoutDialog from '@/components/pos/CheckoutDialog.vue'
+import ReceiptView from '@/components/pos/ReceiptView.vue'
+import { formatQuantity, formatUgx } from '@/lib/format'
+import { useCartStore } from '@/stores/cart'
+import { useCatalogStore } from '@/stores/catalog'
+import { useShopStore } from '@/stores/shop'
+import type { PosProduct, Sale } from '@/types/sales'
+
+const catalog = useCatalogStore()
+const cart = useCartStore()
+const shopStore = useShopStore()
+
+const search = ref('')
+const category = ref<string | null>(null)
+const showCheckout = ref(false)
+const cartOpen = ref(false)
+const searchInput = ref<HTMLInputElement | null>(null)
+const receipt = ref<{ sale: Sale; tendered: number; change: number } | null>(null)
+
+onMounted(async () => {
+  if (shopStore.currentShop) await catalog.load(shopStore.currentShop.id)
+  searchInput.value?.focus()
+})
+
+const categories = computed(() => [
+  ...new Set(catalog.products.map((p) => p.category).filter((c): c is string => !!c)),
+])
+
+const visible = computed(() => {
+  const q = search.value.trim().toLowerCase()
+  return catalog.products.filter(
+    (p) =>
+      (!category.value || p.category === category.value) &&
+      (!q ||
+        p.name.toLowerCase().includes(q) ||
+        p.sku?.toLowerCase().includes(q) ||
+        p.barcode?.includes(q)),
+  )
+})
+
+// A scanner types the code and presses Enter, so an exact barcode/SKU match
+// (or a single remaining result) is added straight to the cart.
+function onSearchEnter() {
+  const q = search.value.trim()
+  if (!q) return
+  const exact = catalog.products.find(
+    (p) => p.barcode === q || p.sku?.toLowerCase() === q.toLowerCase(),
+  )
+  const match = exact ?? (visible.value.length === 1 ? visible.value[0] : undefined)
+  if (match) {
+    addToCart(match)
+    search.value = ''
+  }
+}
+
+function addToCart(product: PosProduct) {
+  if (product.stock <= 0) return
+  cart.add(product)
+}
+
+function stockLabel(product: PosProduct) {
+  if (product.stock <= 0) return 'Out of stock'
+  return `${formatQuantity(product.stock)} ${product.base_unit}`
+}
+
+function isLow(product: PosProduct) {
+  return product.stock > 0 && product.stock <= product.low_stock_threshold
+}
+
+function onPaid(sale: Sale, tendered: number, change: number) {
+  showCheckout.value = false
+  cartOpen.value = false
+  receipt.value = { sale, tendered, change }
+}
+
+function newSale() {
+  receipt.value = null
+  searchInput.value?.focus()
+}
+
+function print() {
+  window.print()
+}
+
+async function share() {
+  if (!receipt.value) return
+  const { sale } = receipt.value
+  const text = `${sale.shop?.name} — receipt ${sale.sale_number}\nTotal: ${formatUgx(sale.total)}`
+  if (navigator.share) {
+    await navigator.share({ title: `Receipt ${sale.sale_number}`, text }).catch(() => {})
+  } else {
+    await navigator.clipboard?.writeText(text)
+  }
+}
+</script>
+
+<template>
+  <main class="pos">
+    <section class="catalog">
+      <div class="catalog-top">
+        <input
+          ref="searchInput"
+          v-model="search"
+          class="search"
+          type="search"
+          placeholder="Search products, or scan a barcode…"
+          autocomplete="off"
+          @keydown.enter.prevent="onSearchEnter"
+        />
+
+        <div v-if="categories.length" class="chips">
+          <button
+            type="button"
+            class="chip"
+            :class="{ active: category === null }"
+            @click="category = null"
+          >
+            All
+          </button>
+          <button
+            v-for="name in categories"
+            :key="name"
+            type="button"
+            class="chip"
+            :class="{ active: category === name }"
+            @click="category = name"
+          >
+            {{ name }}
+          </button>
+        </div>
+
+        <p v-if="catalog.notice" class="notice">{{ catalog.notice }}</p>
+      </div>
+
+      <div class="grid-wrap">
+        <p v-if="catalog.loading && !catalog.products.length" class="state">Loading products…</p>
+        <p v-else-if="!catalog.products.length" class="state">
+          No products in this shop yet. They'll appear here once they're added on the Products
+          screen.
+        </p>
+        <p v-else-if="!visible.length" class="state">Nothing matches “{{ search }}”.</p>
+
+        <div v-else class="grid">
+          <button
+            v-for="product in visible"
+            :key="product.id"
+            type="button"
+            class="tile"
+            :disabled="product.stock <= 0"
+            @click="addToCart(product)"
+          >
+            <span class="tile-name">{{ product.name }}</span>
+            <span class="tile-price">{{ formatUgx(product.selling_price) }}</span>
+            <span class="tile-stock" :class="{ out: product.stock <= 0, low: isLow(product) }">
+              {{ stockLabel(product) }}
+            </span>
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <button
+      v-if="cart.itemCount && !cartOpen"
+      type="button"
+      class="cart-bar"
+      @click="cartOpen = true"
+    >
+      <span>{{ cart.itemCount }} item{{ cart.itemCount === 1 ? '' : 's' }} in cart</span>
+      <strong>{{ formatUgx(cart.total) }}</strong>
+    </button>
+
+    <aside class="cart card" :class="{ open: cartOpen }" aria-label="Cart">
+      <header class="cart-head">
+        <h2>Current sale</h2>
+        <div class="cart-head-actions">
+          <button v-if="cart.itemCount" type="button" class="text-btn" @click="cart.clear()">
+            Clear
+          </button>
+          <button type="button" class="text-btn mobile-only" @click="cartOpen = false">
+            Close
+          </button>
+        </div>
+      </header>
+
+      <div class="cart-body">
+        <p v-if="!cart.itemCount" class="state">Tap a product to add it to the sale.</p>
+
+        <ul v-else class="lines">
+          <li v-for="line in cart.lines" :key="line.id" class="line">
+            <div class="line-top">
+              <span class="line-name">{{ line.name }}</span>
+              <span class="line-amount">{{ formatUgx(cart.lineTotal(line)) }}</span>
+            </div>
+
+            <div class="line-controls">
+              <div class="stepper">
+                <button
+                  type="button"
+                  aria-label="Decrease quantity"
+                  @click="cart.setQuantity(line, line.quantity - 1)"
+                >
+                  −
+                </button>
+                <input
+                  :value="line.quantity"
+                  type="number"
+                  inputmode="decimal"
+                  step="any"
+                  min="0"
+                  :max="cart.maxQuantity(line)"
+                  :aria-label="`${line.name} quantity`"
+                  @change="
+                    cart.setQuantity(line, Number(($event.target as HTMLInputElement).value))
+                  "
+                />
+                <button
+                  type="button"
+                  aria-label="Increase quantity"
+                  :disabled="line.quantity >= cart.maxQuantity(line)"
+                  @click="cart.setQuantity(line, line.quantity + 1)"
+                >
+                  +
+                </button>
+              </div>
+
+              <select
+                v-if="line.units.length"
+                class="unit-select"
+                :value="line.unit"
+                :aria-label="`${line.name} unit`"
+                @change="cart.setUnit(line, ($event.target as HTMLSelectElement).value)"
+              >
+                <option :value="line.baseUnit">{{ line.baseUnit }}</option>
+                <option v-for="unit in line.units" :key="unit.unit_name" :value="unit.unit_name">
+                  {{ unit.unit_name }}
+                </option>
+              </select>
+              <span v-else class="unit-label">{{ line.unit }}</span>
+
+              <span class="line-price">@ {{ formatUgx(line.unitPrice) }}</span>
+
+              <button
+                type="button"
+                class="line-remove"
+                :aria-label="`Remove ${line.name}`"
+                @click="cart.remove(line)"
+              >
+                ×
+              </button>
+            </div>
+          </li>
+        </ul>
+      </div>
+
+      <footer v-if="cart.itemCount" class="cart-foot">
+        <dl class="sums">
+          <div>
+            <dt>Subtotal</dt>
+            <dd>{{ formatUgx(cart.subtotal) }}</dd>
+          </div>
+          <div class="discount-row">
+            <dt><label for="order-discount">Discount</label></dt>
+            <dd>
+              <input
+                id="order-discount"
+                :value="cart.orderDiscount || ''"
+                type="number"
+                inputmode="numeric"
+                min="0"
+                placeholder="0"
+                @change="cart.setOrderDiscount(Number(($event.target as HTMLInputElement).value))"
+              />
+            </dd>
+          </div>
+          <div class="grand">
+            <dt>Total</dt>
+            <dd>{{ formatUgx(cart.total) }}</dd>
+          </div>
+        </dl>
+
+        <button
+          type="button"
+          class="btn btn-primary btn-block charge"
+          :disabled="cart.total <= 0"
+          @click="showCheckout = true"
+        >
+          Charge {{ formatUgx(cart.total) }}
+        </button>
+      </footer>
+    </aside>
+
+    <CheckoutDialog
+      v-if="showCheckout"
+      :total="cart.total"
+      @close="showCheckout = false"
+      @paid="onPaid"
+    />
+
+    <BaseModal v-if="receipt" title="Sale complete" @close="newSale">
+      <div class="receipt-print">
+        <ReceiptView :sale="receipt.sale" :tendered="receipt.tendered" :change="receipt.change" />
+      </div>
+      <div class="receipt-actions">
+        <button type="button" class="btn" @click="print">Print</button>
+        <button type="button" class="btn" @click="share">Share</button>
+        <RouterLink class="btn" :to="`/sales/${receipt.sale.id}`" @click="newSale"
+          >Details</RouterLink
+        >
+        <button type="button" class="btn btn-primary grow" @click="newSale">New sale</button>
+      </div>
+    </BaseModal>
+  </main>
+</template>
+
+<style scoped>
+.pos {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 390px;
+  gap: 1.25rem;
+  height: 100dvh;
+  padding: 1.25rem;
+  min-height: 0;
+}
+
+.catalog {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.catalog-top {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-bottom: 0.75rem;
+}
+
+.search {
+  width: 100%;
+  min-height: 48px;
+  padding: 0 1rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  font-size: 1rem;
+  outline: none;
+}
+
+.search:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
+}
+
+.chips {
+  display: flex;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+}
+
+.chip {
+  flex-shrink: 0;
+  min-height: 36px;
+  padding: 0 0.875rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-ink-soft);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.chip.active {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.notice {
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary-soft);
+  color: var(--color-ink-soft);
+  font-size: 0.8125rem;
+}
+
+.grid-wrap {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 2px;
+}
+
+.state {
+  padding: 2rem 1rem;
+  text-align: center;
+  color: var(--color-ink-faint);
+  font-size: 0.9375rem;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.75rem;
+}
+
+.tile {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.25rem;
+  min-height: 96px;
+  padding: 0.875rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.tile:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-soft);
+}
+
+.tile:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.tile:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.tile-name {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  color: var(--color-ink);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.3;
+}
+
+.tile-price {
+  color: var(--color-primary);
+  font-size: 0.9375rem;
+  font-weight: 700;
+}
+
+.tile-stock {
+  margin-top: auto;
+  color: var(--color-ink-faint);
+  font-size: 0.75rem;
+}
+
+.tile-stock.low {
+  color: #b45309;
+  font-weight: 600;
+}
+
+.tile-stock.out {
+  color: var(--color-danger);
+  font-weight: 600;
+}
+
+/* Cart */
+.cart {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.cart-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.cart-head h2 {
+  font-size: 0.9375rem;
+}
+
+.cart-head-actions {
+  display: flex;
+  gap: 1rem;
+}
+
+.text-btn {
+  border: none;
+  background: none;
+  padding: 0;
+  color: var(--color-ink-faint);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.text-btn:hover {
+  color: var(--color-primary);
+}
+
+.mobile-only {
+  display: none;
+}
+
+.cart-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.lines {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.line {
+  padding: 0.875rem 1.25rem;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.line-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.line-name {
+  font-weight: 600;
+}
+
+.line-amount {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.line-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.5rem;
+}
+
+.stepper {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.stepper button {
+  width: 36px;
+  height: 36px;
+  border: none;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-size: 1.125rem;
+  cursor: pointer;
+}
+
+.stepper button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.stepper input {
+  width: 52px;
+  height: 36px;
+  border: none;
+  background: var(--color-surface);
+  text-align: center;
+  font-size: 0.9375rem;
+  outline: none;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.stepper input::-webkit-outer-spin-button,
+.stepper input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.unit-select {
+  height: 36px;
+  padding: 0 0.5rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-size: 0.8125rem;
+}
+
+.unit-label,
+.line-price {
+  color: var(--color-ink-faint);
+  font-size: 0.8125rem;
+}
+
+.line-price {
+  margin-left: auto;
+}
+
+.line-remove {
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-ink-faint);
+  font-size: 1.25rem;
+  cursor: pointer;
+}
+
+.line-remove:hover {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.cart-foot {
+  padding: 1rem 1.25rem 1.25rem;
+  border-top: 1px solid var(--color-border);
+}
+
+.sums {
+  margin: 0 0 1rem;
+}
+
+.sums div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.25rem 0;
+  font-size: 0.875rem;
+}
+
+.sums dt {
+  color: var(--color-ink-soft);
+}
+
+.sums dd {
+  margin: 0;
+}
+
+.sums .grand {
+  padding-top: 0.5rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.sums .grand dt {
+  color: var(--color-ink);
+}
+
+.discount-row input {
+  width: 110px;
+  height: 34px;
+  padding: 0 0.5rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  text-align: right;
+  font-size: 0.875rem;
+  outline: none;
+}
+
+.charge {
+  min-height: 52px;
+  font-size: 1.0625rem;
+}
+
+.cart-bar {
+  display: none;
+}
+
+.receipt-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1.25rem;
+}
+
+.receipt-actions .btn {
+  border-color: var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-ink);
+  text-decoration: none;
+}
+
+.receipt-actions .btn-primary {
+  border-color: transparent;
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.grow {
+  flex: 1;
+}
+
+@media (max-width: 900px) {
+  .pos {
+    grid-template-columns: 1fr;
+    height: calc(100dvh - 53px);
+    padding: 0.875rem;
+    padding-bottom: 5rem;
+  }
+
+  .cart {
+    position: fixed;
+    inset: auto 0 0 0;
+    z-index: 40;
+    max-height: 85dvh;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    transform: translateY(105%);
+    transition: transform 0.2s ease;
+  }
+
+  .cart.open {
+    transform: translateY(0);
+  }
+
+  .mobile-only {
+    display: inline;
+  }
+
+  .cart-bar {
+    position: fixed;
+    inset: auto 0.875rem 0.875rem 0.875rem;
+    z-index: 30;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    min-height: 52px;
+    padding: 0 1.25rem;
+    border: none;
+    border-radius: var(--radius-md);
+    background: var(--color-primary);
+    color: var(--color-on-primary);
+    font-size: 0.9375rem;
+    box-shadow: var(--shadow-card);
+    cursor: pointer;
+  }
+}
+</style>
