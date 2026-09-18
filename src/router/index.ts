@@ -78,6 +78,12 @@ const router = createRouter({
       meta: { requiresAuth: true, title: 'Credit' },
     },
     {
+      path: '/expenses',
+      name: 'expenses',
+      component: () => import('../views/expenses/ExpensesView.vue'),
+      meta: { requiresAuth: true, title: 'Expenses', managerOnly: true },
+    },
+    {
       path: '/sync',
       name: 'sync',
       component: () => import('../views/sync/SyncQueueView.vue'),
@@ -123,6 +129,11 @@ router.beforeEach(async (to) => {
     } else if (!to.meta.standalone) {
       return { name: 'setup-shop' }
     }
+  }
+
+  // Checked last: a person's role is per shop, so the shop has to be known.
+  if (to.meta.managerOnly && !auth.canManage) {
+    return { name: 'home' }
   }
 })
 

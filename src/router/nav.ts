@@ -4,6 +4,8 @@ export interface NavItem {
   icon: string
   owner: string
   ready?: boolean
+  // Hidden from cashiers (the server refuses them regardless).
+  managerOnly?: boolean
 }
 
 export interface NavGroup {
@@ -59,7 +61,14 @@ export const navGroups: NavGroup[] = [
   {
     label: 'Finance',
     items: [
-      { label: 'Expenses', to: '/expenses', icon: 'expenses', owner: 'Collins — Expenses' },
+      {
+        label: 'Expenses',
+        to: '/expenses',
+        icon: 'expenses',
+        owner: 'Elioda — Expenses',
+        ready: true,
+        managerOnly: true,
+      },
       { label: 'Reports', to: '/reports', icon: 'reports', owner: 'Douglas — Reports' },
     ],
   },

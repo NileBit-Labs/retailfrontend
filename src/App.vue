@@ -13,6 +13,11 @@ const router = useRouter()
 const route = useRoute()
 const sidebarOpen = ref(false)
 const sync = useSyncStore()
+const visibleGroups = computed(() =>
+  navGroups
+    .map((g) => ({ ...g, items: g.items.filter((i) => !i.managerOnly || auth.canManage) }))
+    .filter((g) => g.items.length),
+)
 const showShell = computed(() => auth.isAuthenticated && !route.meta.standalone)
 
 watch(
@@ -48,7 +53,7 @@ async function onLogout() {
       </RouterLink>
 
       <nav class="nav">
-        <div v-for="group in navGroups" :key="group.label" class="nav-group">
+        <div v-for="group in visibleGroups" :key="group.label" class="nav-group">
           <p class="nav-group-label">{{ group.label }}</p>
           <RouterLink
             v-for="item in group.items"
