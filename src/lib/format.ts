@@ -31,3 +31,10 @@ export function uuid(): string {
     return (c === 'x' ? r : (r & 0x3) | 0x8).toString(16)
   })
 }
+
+// A calendar date (YYYY-MM-DD) on the device's own clock. toISOString() would give the UTC
+// date, which is still "yesterday" in Kampala for the first three hours of every day.
+export function localDate(d: Date = new Date(), offsetDays = 0): string {
+  const shifted = new Date(d.getFullYear(), d.getMonth(), d.getDate() + offsetDays)
+  return `${shifted.getFullYear()}-${String(shifted.getMonth() + 1).padStart(2, '0')}-${String(shifted.getDate()).padStart(2, '0')}`
+}

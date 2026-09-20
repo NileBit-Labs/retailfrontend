@@ -2,7 +2,7 @@
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { apiErrorMessage, apiFetch, fieldErrors } from '@/lib/api'
-import { formatQuantity, formatUgx, uuid } from '@/lib/format'
+import { formatQuantity, formatUgx, localDate, uuid } from '@/lib/format'
 import type { ManagedProduct, Paginated } from '@/types/inventory'
 import type { Supplier } from '@/types/purchasing'
 import { PAYMENT_METHODS, type PaymentMethod } from '@/types/sales'
@@ -20,7 +20,7 @@ const router = useRouter()
 
 const suppliers = ref<Supplier[]>([])
 const supplierId = ref(typeof route.query.supplier === 'string' ? route.query.supplier : '')
-const purchaseDate = ref(new Date().toISOString().slice(0, 10))
+const purchaseDate = ref(localDate())
 const reference = ref('')
 const note = ref('')
 const lines = ref<Line[]>([])
@@ -41,7 +41,7 @@ const errors = ref<Record<string, string>>({})
 const idempotencyKey = uuid()
 let nextKey = 1
 
-const today = new Date().toISOString().slice(0, 10)
+const today = localDate()
 
 const lineTotal = (l: Line) => Math.round((l.quantity ?? 0) * (l.unitCost ?? 0))
 const total = computed(() => lines.value.reduce((sum, l) => sum + lineTotal(l), 0))
@@ -507,10 +507,9 @@ h2 {
 
 .line {
   display: grid;
-  grid-template-columns: minmax(140px, 1.3fr) 90px minmax(170px, 1.2fr) minmax(130px, 1fr) minmax(
-      110px,
-      auto
-    ) 28px;
+  grid-template-columns:
+    minmax(140px, 1.3fr) 90px minmax(170px, 1.2fr) minmax(130px, 1fr) minmax(110px, auto)
+    28px;
   align-items: start;
   gap: 0.75rem;
   padding: 0.875rem 0;
