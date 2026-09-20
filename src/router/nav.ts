@@ -56,8 +56,22 @@ export const navGroups: NavGroup[] = [
   {
     label: 'Purchasing',
     items: [
-      { label: 'Purchases', to: '/purchases', icon: 'purchases', owner: 'Collins — Purchases' },
-      { label: 'Suppliers', to: '/suppliers', icon: 'suppliers', owner: 'Collins — Purchases' },
+      {
+        label: 'Purchases',
+        to: '/purchases',
+        icon: 'purchases',
+        owner: 'Collins — Purchases',
+        ready: true,
+        managerOnly: true,
+      },
+      {
+        label: 'Suppliers',
+        to: '/suppliers',
+        icon: 'suppliers',
+        owner: 'Collins — Purchases',
+        ready: true,
+        managerOnly: true,
+      },
     ],
   },
   {
