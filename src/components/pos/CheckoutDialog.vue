@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import BaseModal from '@/components/BaseModal.vue'
 import { apiErrorMessage } from '@/lib/api'
-import { formatUgx } from '@/lib/format'
+import { formatUgx, localDate } from '@/lib/format'
 import { useCartStore, type PaymentInput } from '@/stores/cart'
 import { PAYMENT_METHODS, type Sale } from '@/types/sales'
 
@@ -30,11 +30,7 @@ const canConfirm = computed(
     (onCredit.value || (remaining.value === 0 && canGiveChange.value && tendered.value > 0)),
 )
 
-const isoDate = (offsetDays: number) => {
-  const d = new Date()
-  d.setDate(d.getDate() + offsetDays)
-  return d.toISOString().slice(0, 10)
-}
+const isoDate = (offsetDays: number) => localDate(new Date(), offsetDays)
 const today = isoDate(0)
 onMounted(() => {
   if (!cart.dueDate) cart.dueDate = isoDate(14)
