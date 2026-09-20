@@ -6,6 +6,8 @@ export interface NavItem {
   ready?: boolean
   // Hidden from cashiers (the server refuses them regardless).
   managerOnly?: boolean
+  // Owner only (the server refuses everyone else regardless).
+  ownerOnly?: boolean
 }
 
 export interface NavGroup {
@@ -70,7 +72,14 @@ export const navGroups: NavGroup[] = [
         ready: true,
         managerOnly: true,
       },
-      { label: 'Reports', to: '/reports', icon: 'reports', owner: 'Douglas — Reports' },
+      {
+        label: 'Reports',
+        to: '/reports',
+        icon: 'reports',
+        owner: 'Douglas — Reports',
+        ready: true,
+        managerOnly: true,
+      },
     ],
   },
   {
@@ -80,8 +89,23 @@ export const navGroups: NavGroup[] = [
   {
     label: 'Admin',
     items: [
-      { label: 'Users', to: '/users', icon: 'users', owner: 'Douglas — Users' },
-      { label: 'Settings', to: '/settings', icon: 'settings', owner: 'Foundation' },
+      {
+        label: 'Staff',
+        to: '/users',
+        icon: 'users',
+        owner: 'Douglas — Users',
+        ready: true,
+        managerOnly: true,
+      },
+      {
+        label: 'Audit log',
+        to: '/audit-log',
+        icon: 'audit',
+        owner: 'Douglas — Users',
+        ready: true,
+        ownerOnly: true,
+      },
+      { label: 'Settings', to: '/settings', icon: 'settings', owner: 'Foundation', ready: true },
     ],
   },
 ]

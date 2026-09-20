@@ -15,7 +15,12 @@ const sidebarOpen = ref(false)
 const sync = useSyncStore()
 const visibleGroups = computed(() =>
   navGroups
-    .map((g) => ({ ...g, items: g.items.filter((i) => !i.managerOnly || auth.canManage) }))
+    .map((g) => ({
+      ...g,
+      items: g.items.filter(
+        (i) => (!i.managerOnly || auth.canManage) && (!i.ownerOnly || auth.isOwner),
+      ),
+    }))
     .filter((g) => g.items.length),
 )
 const showShell = computed(() => auth.isAuthenticated && !route.meta.standalone)

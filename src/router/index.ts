@@ -84,6 +84,24 @@ const router = createRouter({
       meta: { requiresAuth: true, title: 'Expenses', managerOnly: true },
     },
     {
+      path: '/users',
+      name: 'users',
+      component: () => import('../views/users/UsersView.vue'),
+      meta: { requiresAuth: true, title: 'Staff', managerOnly: true },
+    },
+    {
+      path: '/audit-log',
+      name: 'audit-log',
+      component: () => import('../views/settings/AuditLogView.vue'),
+      meta: { requiresAuth: true, title: 'Audit log', ownerOnly: true },
+    },
+    {
+      path: '/settings',
+      name: 'settings',
+      component: () => import('../views/settings/SettingsView.vue'),
+      meta: { requiresAuth: true, title: 'Settings' },
+    },
+    {
       path: '/shifts',
       name: 'shifts',
       component: () => import('../views/shifts/ShiftsView.vue'),
@@ -138,7 +156,7 @@ router.beforeEach(async (to) => {
   }
 
   // Checked last: a person's role is per shop, so the shop has to be known.
-  if (to.meta.managerOnly && !auth.canManage) {
+  if ((to.meta.managerOnly && !auth.canManage) || (to.meta.ownerOnly && !auth.isOwner)) {
     return { name: 'home' }
   }
 })

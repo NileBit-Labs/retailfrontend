@@ -41,6 +41,7 @@ export const useAuthStore = defineStore('auth', () => {
     return user.value?.shop_roles.find((r) => r.shop.id === shopId)?.role ?? null
   })
   const canManage = computed(() => currentRole.value === 'owner' || currentRole.value === 'manager')
+  const isOwner = computed(() => currentRole.value === 'owner')
 
   function setSession(response: AuthResponse) {
     user.value = response.user
@@ -95,6 +96,7 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated,
     currentRole,
     canManage,
+    isOwner,
     register,
     login,
     logout,
