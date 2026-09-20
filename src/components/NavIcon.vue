@@ -102,6 +102,11 @@ defineProps<{ name: string }>()
       <path d="M4 21c0-4 4-6 8-6s8 2 8 6" />
     </template>
 
+    <template v-else-if="name === 'audit'">
+      <path d="M12 3l7 3v5c0 4.5-3 8-7 10-4-2-7-5.5-7-10V6l7-3z" />
+      <path d="M9 12l2 2 4-4" />
+    </template>
+
     <template v-else-if="name === 'settings'">
       <line x1="4" y1="7" x2="20" y2="7" />
       <line x1="4" y1="12" x2="20" y2="12" />
