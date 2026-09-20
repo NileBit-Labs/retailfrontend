@@ -45,3 +45,20 @@ export function longDay(date: string): string {
     timeZone: 'UTC',
   })
 }
+
+/** "Mon" for a YYYY-MM-DD date. */
+export function weekdayShort(date: string): string {
+  return new Date(`${date}T00:00:00Z`).toLocaleDateString('en-UG', {
+    weekday: 'short',
+    timeZone: 'UTC',
+  })
+}
+
+/** "20 Sep" for a YYYY-MM-DD date. */
+export function dayMonth(date: string): string {
+  return new Date(`${date}T00:00:00Z`).toLocaleDateString('en-UG', {
+    day: 'numeric',
+    month: 'short',
+    timeZone: 'UTC',
+  })
+}

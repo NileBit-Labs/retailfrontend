@@ -102,6 +102,12 @@ const router = createRouter({
       meta: { requiresAuth: true, title: 'Settings' },
     },
     {
+      path: '/reports',
+      name: 'reports',
+      component: () => import('../views/reports/ReportsView.vue'),
+      meta: { requiresAuth: true, title: 'Reports', managerOnly: true },
+    },
+    {
       path: '/shifts',
       name: 'shifts',
       component: () => import('../views/shifts/ShiftsView.vue'),
