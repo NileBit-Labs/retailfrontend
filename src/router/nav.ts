@@ -3,6 +3,9 @@ export interface NavItem {
   to: string
   icon: string
   owner: string
+  ready?: boolean
+  // Hidden from cashiers (the server refuses them regardless).
+  managerOnly?: boolean
 }
 
 export interface NavGroup {
@@ -18,8 +21,15 @@ export const navGroups: NavGroup[] = [
   {
     label: 'Sales',
     items: [
-      { label: 'Sell', to: '/pos', icon: 'sell', owner: 'Elioda — Sales/POS' },
-      { label: 'Sales history', to: '/sales', icon: 'sales', owner: 'Elioda — Sales/POS' },
+      { label: 'Sell', to: '/pos', icon: 'sell', owner: 'Elioda — Sales/POS', ready: true },
+      {
+        label: 'Sales history',
+        to: '/sales',
+        icon: 'sales',
+        owner: 'Elioda — Sales/POS',
+        ready: true,
+      },
+      { label: 'Shifts', to: '/shifts', icon: 'shifts', owner: 'Elioda — Shifts', ready: true },
     ],
   },
   {
@@ -39,14 +49,27 @@ export const navGroups: NavGroup[] = [
   {
     label: 'Customers',
     items: [
-      { label: 'Customers', to: '/customers', icon: 'customers', owner: 'Douglas — Customers' },
-      { label: 'Credit', to: '/credit', icon: 'credit', owner: 'Douglas — Customers' },
+      {
+        label: 'Customers',
+        to: '/customers',
+        icon: 'customers',
+        owner: 'Douglas — Customers',
+        ready: true,
+      },
+      { label: 'Credit', to: '/credit', icon: 'credit', owner: 'Douglas — Customers', ready: true },
     ],
   },
   {
     label: 'Finance',
     items: [
-      { label: 'Expenses', to: '/expenses', icon: 'expenses', owner: 'Collins — Expenses' },
+      {
+        label: 'Expenses',
+        to: '/expenses',
+        icon: 'expenses',
+        owner: 'Elioda — Expenses',
+        ready: true,
+        managerOnly: true,
+      },
       { label: 'Reports', to: '/reports', icon: 'reports', owner: 'Douglas — Reports' },
     ],
   },

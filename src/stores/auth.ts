@@ -1,6 +1,7 @@
 import { ref, computed } from 'vue'
 import { defineStore } from 'pinia'
 import { apiFetch, ApiError } from '@/lib/api'
+import { useShiftStore } from '@/stores/shift'
 import { useShopStore, type Shop } from '@/stores/shop'
 
 export interface Organization {
@@ -35,6 +36,12 @@ export const useAuthStore = defineStore('auth', () => {
   const token = ref<string | null>(localStorage.getItem('auth_token'))
   const isAuthenticated = computed(() => token.value !== null)
 
+  const currentRole = computed(() => {
+    const shopId = useShopStore().currentShop?.id
+    return user.value?.shop_roles.find((r) => r.shop.id === shopId)?.role ?? null
+  })
+  const canManage = computed(() => currentRole.value === 'owner' || currentRole.value === 'manager')
+
   function setSession(response: AuthResponse) {
     user.value = response.user
     token.value = response.token
@@ -46,6 +53,7 @@ export const useAuthStore = defineStore('auth', () => {
     token.value = null
     localStorage.removeItem('auth_token')
     useShopStore().clearCurrentShop()
+    useShiftStore().reset()
   }
 
   async function register(payload: {
@@ -81,7 +89,18 @@ export const useAuthStore = defineStore('auth', () => {
     user.value = await apiFetch<User>('/auth/me')
   }
 
-  return { user, token, isAuthenticated, register, login, logout, fetchMe, clearSession }
+  return {
+    user,
+    token,
+    isAuthenticated,
+    currentRole,
+    canManage,
+    register,
+    login,
+    logout,
+    fetchMe,
+    clearSession,
+  }
 })
 
 export { ApiError }

@@ -1,18 +1,42 @@
 <script setup lang="ts">
-import { computed, ref } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { navGroups } from '@/router/nav'
 import NavIcon from '@/components/NavIcon.vue'
+import SyncStatus from '@/components/SyncStatus.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
+import { useSyncStore } from '@/stores/sync'
 
 const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()
 const sidebarOpen = ref(false)
+const sync = useSyncStore()
+const visibleGroups = computed(() =>
+  navGroups
+    .map((g) => ({ ...g, items: g.items.filter((i) => !i.managerOnly || auth.canManage) }))
+    .filter((g) => g.items.length),
+)
 const showShell = computed(() => auth.isAuthenticated && !route.meta.standalone)
 
+watch(
+  () => auth.isAuthenticated,
+  (signedIn) => {
+    if (signedIn) void sync.init()
+  },
+  { immediate: true },
+)
+
 async function onLogout() {
+  if (
+    sync.unsyncedCount &&
+    !window.confirm(
+      `${sync.unsyncedCount} sale${sync.unsyncedCount === 1 ? ' is' : 's are'} not synced yet. They stay safe on this device, but will only reach the shop's records after you sign in and sync again. Log out anyway?`,
+    )
+  ) {
+    return
+  }
   await auth.logout()
   await router.push('/login')
 }
@@ -29,7 +53,7 @@ async function onLogout() {
       </RouterLink>
 
       <nav class="nav">
-        <div v-for="group in navGroups" :key="group.label" class="nav-group">
+        <div v-for="group in visibleGroups" :key="group.label" class="nav-group">
           <p class="nav-group-label">{{ group.label }}</p>
           <RouterLink
             v-for="item in group.items"
@@ -45,6 +69,7 @@ async function onLogout() {
       </nav>
 
       <div class="sidebar-footer">
+        <SyncStatus />
         <ThemeToggle />
         <div class="user-block">
           <span class="user-name">{{ auth.user?.name }}</span>
@@ -59,6 +84,7 @@ async function onLogout() {
           <span /><span /><span />
         </button>
         <span class="mobile-title">{{ (route.meta.title as string) ?? 'Dashboard' }}</span>
+        <SyncStatus class="mobile-sync" />
       </header>
 
       <RouterView />
@@ -91,7 +117,7 @@ async function onLogout() {
   height: 28px;
   border-radius: var(--radius-sm);
   background: var(--color-primary);
-  color: white;
+  color: var(--color-on-primary);
   font-weight: 700;
   font-size: 0.875rem;
   flex-shrink: 0;
@@ -229,6 +255,10 @@ async function onLogout() {
 .mobile-title {
   font-weight: 600;
   font-size: 0.9375rem;
+}
+
+.mobile-sync {
+  margin-left: auto;
 }
 
 .hamburger {
