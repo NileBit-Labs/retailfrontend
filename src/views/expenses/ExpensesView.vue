@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import BaseModal from '@/components/BaseModal.vue'
 import { apiErrorMessage, apiFetch } from '@/lib/api'
-import { formatUgx } from '@/lib/format'
+import { formatUgx, localDate } from '@/lib/format'
 
 interface Expense {
   id: number
@@ -22,9 +22,8 @@ interface ExpenseList {
   data: Expense[]
 }
 
-const isoDate = (d: Date) => d.toISOString().slice(0, 10)
-const today = isoDate(new Date())
-const monthStart = isoDate(new Date(new Date().getFullYear(), new Date().getMonth(), 1))
+const today = localDate()
+const monthStart = localDate(new Date(new Date().getFullYear(), new Date().getMonth(), 1))
 
 const list = ref<ExpenseList | null>(null)
 const loading = ref(false)

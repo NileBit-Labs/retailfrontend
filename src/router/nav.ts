@@ -98,7 +98,14 @@ export const navGroups: NavGroup[] = [
         ready: true,
         managerOnly: true,
       },
-      { label: 'Reports', to: '/reports', icon: 'reports', owner: 'Douglas — Reports' },
+      {
+        label: 'Reports',
+        to: '/reports',
+        icon: 'reports',
+        owner: 'Douglas — Reports',
+        ready: true,
+        managerOnly: true,
+      },
     ],
   },
   {

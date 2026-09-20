@@ -43,3 +43,24 @@ export function parseCsv(text: string): string[][] {
 
   return rows.filter((r) => r.some((cell) => cell.trim() !== ''))
 }
+
+// Quotes a cell only when it has to be, so the file opens cleanly in Excel and Sheets.
+function cell(value: string | number | null | undefined): string {
+  const text = value === null || value === undefined ? '' : String(value)
+  return /[",\n\r]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
+}
+
+export function toCsv(rows: (string | number | null | undefined)[][]): string {
+  return rows.map((row) => row.map(cell).join(',')).join('\r\n')
+}
+
+export function downloadCsv(filename: string, rows: (string | number | null | undefined)[][]) {
+  // The BOM makes Excel read UTF-8 (names with accents) correctly.
+  const blob = new Blob(['﻿' + toCsv(rows)], { type: 'text/csv;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  link.click()
+  URL.revokeObjectURL(url)
+}
