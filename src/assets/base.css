@@ -212,6 +212,220 @@ textarea {
   text-decoration: underline;
 }
 
+/* Shared building blocks for list/management screens (ui- prefix so they can't
+   collide with the older per-screen styles). */
+
+.ui-page {
+  flex: 1;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.ui-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.ui-head h1 {
+  margin-top: 0.25rem;
+  font-size: 1.5rem;
+}
+
+.ui-eyebrow {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+
+.ui-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.ui-btn-secondary {
+  border-color: var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+.ui-btn-secondary:hover:not(:disabled) {
+  border-color: var(--color-ink-faint);
+}
+
+.ui-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+}
+
+.ui-filters .field {
+  min-width: 150px;
+}
+
+.ui-filters .grow {
+  flex: 1;
+  min-width: 220px;
+}
+
+.ui-chips {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.ui-chip {
+  min-height: 36px;
+  padding: 0 0.875rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-ink-soft);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.ui-chip.active {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.ui-table-card {
+  overflow: hidden;
+}
+
+.ui-table-scroll {
+  overflow-x: auto;
+}
+
+.ui-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.ui-table th {
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-ink-faint);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.ui-table td {
+  padding: 0.875rem 1.25rem;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.ui-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.ui-table tbody tr.clickable {
+  cursor: pointer;
+}
+
+.ui-table tbody tr.clickable:hover {
+  background: var(--color-canvas);
+}
+
+.ui-table .num {
+  text-align: right;
+}
+
+.ui-table .muted,
+.ui-muted {
+  color: var(--color-ink-faint);
+}
+
+.ui-table small {
+  display: block;
+  color: var(--color-ink-faint);
+  font-size: 0.75rem;
+}
+
+.ui-badge {
+  display: inline-block;
+  padding: 0.125rem 0.625rem;
+  border-radius: 999px;
+  background: var(--color-canvas);
+  color: var(--color-ink-soft);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ui-badge.ok {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.ui-badge.warn {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.ui-badge.bad {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.ui-state {
+  padding: 3rem 1rem;
+  text-align: center;
+  color: var(--color-ink-faint);
+}
+
+.ui-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.875rem 1.25rem;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-ink-faint);
+  font-size: 0.8125rem;
+}
+
+.ui-pager div {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.field-error {
+  color: var(--color-danger);
+  font-size: 0.75rem;
+}
+
+.field .hint {
+  color: var(--color-ink-faint);
+  font-size: 0.75rem;
+}
+
+@media (max-width: 860px) {
+  .ui-page {
+    padding: 1.25rem 1rem;
+  }
+}
+
 @media print {
   body * {
     visibility: hidden;

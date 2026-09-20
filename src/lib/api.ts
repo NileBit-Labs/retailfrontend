@@ -97,3 +97,13 @@ export function apiErrorMessage(e: unknown): string {
   }
   return 'Something went wrong. Please try again.'
 }
+
+// Laravel's per-field validation messages, so a form can show each one under
+// the field it belongs to. Nested names like "units.0.unit_name" are kept as-is.
+export function fieldErrors(e: unknown): Record<string, string> {
+  if (!(e instanceof ApiError)) return {}
+  const errors = (e.body as { errors?: Record<string, string[]> } | null)?.errors ?? {}
+  return Object.fromEntries(
+    Object.entries(errors).map(([key, messages]) => [key, messages[0] ?? '']),
+  )
+}
