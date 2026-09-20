@@ -1,173 +1,346 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, onMounted, onUnmounted, ref } from 'vue'
+import { RouterLink } from 'vue-router'
+import BarChart, { type BarPoint } from '@/components/reports/BarChart.vue'
+import DonutChart, { type Slice } from '@/components/reports/DonutChart.vue'
+import StatTile from '@/components/reports/StatTile.vue'
+import { apiErrorMessage, apiFetch, isNetworkFailure } from '@/lib/api'
+import { METHOD_COLORS, METHOD_LABELS, percentChange } from '@/lib/chart'
+import { shortDay, weekdayShort } from '@/lib/dates'
+import { formatDateTime, formatQuantity, formatUgx } from '@/lib/format'
 import { useAuthStore } from '@/stores/auth'
 import { useShopStore } from '@/stores/shop'
-import NavIcon from '@/components/NavIcon.vue'
-import { formatUgx } from '@/lib/format'
+import type { Dashboard, DashboardOwnerManager } from '@/types/reports'
 
 const auth = useAuthStore()
 const shopStore = useShopStore()
 
-const today = computed(() =>
-  new Date().toLocaleDateString('en-UG', { weekday: 'long', day: 'numeric', month: 'long' }),
+const data = ref<Dashboard | null>(null)
+const error = ref('')
+const offline = ref(false)
+const loading = ref(false)
+const updatedAt = ref<Date | null>(null)
+
+const firstName = computed(() => auth.user?.name?.split(' ')[0] ?? '')
+const isOwnerManager = computed(() => data.value !== null && data.value.role !== 'cashier')
+const full = computed(() => (isOwnerManager.value ? (data.value as DashboardOwnerManager) : null))
+
+async function load() {
+  loading.value = true
+  error.value = ''
+  try {
+    data.value = await apiFetch<Dashboard>('/reports/dashboard')
+    offline.value = false
+    updatedAt.value = new Date()
+  } catch (e) {
+    offline.value = isNetworkFailure(e)
+    error.value = offline.value
+      ? "Can't reach the server, so these figures can't be refreshed. Selling still works and syncs later."
+      : apiErrorMessage(e)
+  } finally {
+    loading.value = false
+  }
+}
+
+// Coming back to the tab (or the till) shows fresh figures without a reload.
+function onVisible() {
+  if (document.visibilityState === 'visible') void load()
+}
+
+onMounted(() => {
+  void load()
+  document.addEventListener('visibilitychange', onVisible)
+})
+onUnmounted(() => document.removeEventListener('visibilitychange', onVisible))
+
+const longDate = computed(() =>
+  data.value
+    ? new Date(`${data.value.date}T00:00:00Z`).toLocaleDateString('en-UG', {
+        weekday: 'long',
+        day: 'numeric',
+        month: 'long',
+        timeZone: 'UTC',
+      })
+    : new Date().toLocaleDateString('en-UG', { weekday: 'long', day: 'numeric', month: 'long' }),
 )
 
-const stats = computed(() => [
-  { label: "Today's sales", value: formatUgx(0), hint: 'No sales recorded yet', icon: 'sell' },
-  {
-    label: 'Gross profit (est.)',
-    value: formatUgx(0),
-    hint: 'Based on item costs',
-    icon: 'reports',
-  },
-  { label: 'Expenses', value: formatUgx(0), hint: 'Recorded today', icon: 'expenses' },
-  { label: 'Low stock items', value: '0', hint: 'Below reorder level', icon: 'products' },
-])
-
-const weekDays = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
-
-const paymentMethods = [
-  { label: 'Cash', color: '#0f766e' },
-  { label: 'Mobile Money', color: '#d97706' },
-  { label: 'Card', color: '#6366f1' },
-  { label: 'Bank', color: '#64748b' },
-]
-
-const setupSteps = computed(() => [
-  { label: 'Create your account', done: true },
-  { label: `Set up "${shopStore.currentShop?.name ?? 'your shop'}"`, done: true },
-  { label: 'Add your products', done: false },
-  { label: 'Make your first sale', done: false },
-])
-
-const setupProgress = computed(() => {
-  const done = setupSteps.value.filter((s) => s.done).length
-  return { done, total: setupSteps.value.length, percent: (done / setupSteps.value.length) * 100 }
+const vsYesterday = computed(() => {
+  const d = full.value
+  if (!d) return null
+  const change = percentChange(d.today.net_sales, d.yesterday_net_sales)
+  if (change === null) return { text: 'No sales yesterday to compare', trend: null }
+  if (change === 0) return { text: 'Same as yesterday', trend: null }
+  return {
+    text: `${change > 0 ? '▲' : '▼'} ${Math.abs(change)}% vs yesterday`,
+    trend: change > 0 ? ('up' as const) : ('down' as const),
+  }
 })
+
+const weekChange = computed(() => {
+  const d = full.value
+  if (!d) return null
+  const change = percentChange(d.week.net_sales, d.week.previous_net_sales)
+  if (change === null) return null
+  return {
+    text: `${change >= 0 ? '▲' : '▼'} ${Math.abs(change)}% vs the 7 days before`,
+    up: change >= 0,
+  }
+})
+
+const moneyReceived = computed(
+  () => full.value?.payment_methods.reduce((sum, m) => sum + m.amount, 0) ?? 0,
+)
+
+const points = computed<BarPoint[]>(() =>
+  (full.value?.series ?? []).map((s) => ({
+    label: weekdayShort(s.date),
+    value: s.net_sales,
+    tip: `${shortDay(s.date)} — ${formatUgx(s.net_sales)} · ${s.sales_count} sale${s.sales_count === 1 ? '' : 's'}`,
+  })),
+)
+
+const slices = computed<Slice[]>(() =>
+  (full.value?.payment_methods ?? []).map((m) => ({
+    label: METHOD_LABELS[m.method] ?? m.method,
+    value: m.amount,
+    color: METHOD_COLORS[m.method] ?? 'var(--chart-4)',
+  })),
+)
+
+const topMax = computed(() =>
+  Math.max(1, ...(full.value?.top_products.map((p) => p.revenue) ?? [1])),
+)
+const brandNew = computed(() => data.value !== null && data.value.recent_sales.length === 0)
+
+function shown(iso: string): string {
+  return formatDateTime(iso)
+}
 </script>
 
 <template>
   <main class="dashboard">
     <div class="dashboard-header">
-      <p class="eyebrow">{{ shopStore.currentShop?.name }} · {{ today }}</p>
-      <h1>Welcome back, {{ auth.user?.name?.split(' ')[0] }}</h1>
+      <div>
+        <p class="eyebrow">{{ shopStore.currentShop?.name }} · {{ longDate }}</p>
+        <h1>Welcome back, {{ firstName }}</h1>
+      </div>
+      <button type="button" class="refresh" :disabled="loading" @click="load">
+        {{ loading ? 'Refreshing…' : 'Refresh' }}
+        <span v-if="updatedAt && !loading" class="stamp">
+          · {{ updatedAt.toLocaleTimeString('en-UG', { hour: '2-digit', minute: '2-digit' }) }}
+        </span>
+      </button>
     </div>
 
-    <section class="stat-grid">
-      <div v-for="stat in stats" :key="stat.label" class="stat-card card">
-        <div class="stat-icon-badge">
-          <NavIcon :name="stat.icon" />
-        </div>
-        <div class="stat-body">
-          <p class="stat-label">{{ stat.label }}</p>
-          <p class="stat-value">{{ stat.value }}</p>
-          <p class="stat-hint">{{ stat.hint }}</p>
-        </div>
-      </div>
-    </section>
+    <p v-if="error" class="alert-danger" role="alert">{{ error }}</p>
+    <p v-if="!data && loading" class="state">Loading today's figures…</p>
 
-    <section class="chart-row">
-      <div class="card panel">
+    <!-- Cashier: only what they rang up themselves -->
+    <template v-if="data && data.role === 'cashier'">
+      <section class="stat-grid three">
+        <StatTile label="Your sales today" :value="String(data.today.sales_count)" icon="sell" />
+        <StatTile label="Rung up today" :value="formatUgx(data.today.total)" icon="sales" />
+        <StatTile label="Average sale" :value="formatUgx(data.today.average_sale)" icon="reports" />
+      </section>
+
+      <section class="card panel">
         <div class="panel-head">
-          <h2>Sales this week</h2>
-          <span class="panel-meta">UGX</span>
+          <h2>Your recent sales</h2>
+          <RouterLink to="/pos" class="btn btn-primary small">Start selling</RouterLink>
         </div>
-
-        <div class="bar-chart">
-          <div class="gridlines">
-            <span v-for="n in 4" :key="n" class="gridline" />
-          </div>
-          <div class="bars">
-            <div v-for="day in weekDays" :key="day" class="bar-col">
-              <div class="bar" />
-              <span class="bar-label">{{ day }}</span>
-            </div>
-          </div>
-          <p class="chart-empty">No sales yet — your week's sales will chart here.</p>
-        </div>
-      </div>
-
-      <div class="card panel">
-        <div class="panel-head">
-          <h2>Payment split</h2>
-          <span class="panel-meta">Today</span>
-        </div>
-
-        <div class="donut-wrap">
-          <div class="donut">
-            <div class="donut-center">
-              <span class="donut-value">—</span>
-              <span class="donut-label">No payments yet</span>
-            </div>
-          </div>
-        </div>
-
-        <ul class="legend">
-          <li v-for="method in paymentMethods" :key="method.label">
-            <span class="legend-dot" :style="{ background: method.color }" />
-            <span class="legend-label">{{ method.label }}</span>
-            <span class="legend-value">0%</span>
+        <p v-if="!data.recent_sales.length" class="empty-note">
+          Nothing rung up yet. Your sales will list here as you make them.
+        </p>
+        <ul v-else class="recent">
+          <li v-for="s in data.recent_sales" :key="s.id">
+            <RouterLink :to="`/sales/${s.id}`" class="link">{{ s.sale_number }}</RouterLink>
+            <span class="muted">{{ shown(s.created_at) }}</span>
+            <span class="who">
+              {{ s.customer ?? 'Walk-in' }}
+              <span v-if="s.status === 'voided'" class="pill">Voided</span>
+            </span>
+            <span class="amount" :class="{ struck: s.status === 'voided' }">{{
+              formatUgx(s.total)
+            }}</span>
           </li>
         </ul>
-      </div>
-    </section>
+      </section>
+    </template>
 
-    <section class="lower-row">
-      <div class="card panel">
+    <!-- Owner and manager -->
+    <template v-else-if="full">
+      <section class="stat-grid">
+        <StatTile
+          label="Today's sales"
+          :value="formatUgx(full.today.net_sales)"
+          :hint="vsYesterday?.text"
+          :trend="vsYesterday?.trend"
+          icon="sell"
+        />
+        <StatTile
+          label="Sales made"
+          :value="String(full.today.sales_count)"
+          :hint="
+            full.today.sales_count
+              ? `Average ${formatUgx(full.today.average_sale)}`
+              : 'None yet today'
+          "
+          icon="sales"
+        />
+        <StatTile
+          v-if="full.role === 'owner'"
+          label="Gross profit"
+          :value="formatUgx(full.today.gross_profit ?? 0)"
+          hint="Sales less the cost of what was sold"
+          icon="reports"
+        />
+        <StatTile
+          v-else
+          label="Money received"
+          :value="formatUgx(moneyReceived)"
+          hint="Cash, mobile money and card"
+          icon="credit"
+        />
+        <StatTile
+          label="Expenses"
+          :value="formatUgx(full.today.expenses)"
+          :hint="
+            full.today.refunds
+              ? `${formatUgx(full.today.refunds)} refunded today`
+              : 'Recorded today'
+          "
+          icon="expenses"
+        />
+      </section>
+
+      <section class="chart-row">
+        <div class="card panel">
+          <div class="panel-head">
+            <h2>Sales, last 7 days</h2>
+            <span class="panel-meta">
+              {{ formatUgx(full.week.net_sales) }}
+              <template v-if="weekChange">
+                ·
+                <span :class="weekChange.up ? 'up' : 'down'">{{ weekChange.text }}</span>
+              </template>
+            </span>
+          </div>
+          <BarChart :points="points" empty-text="No sales in the last 7 days yet." />
+        </div>
+
+        <div class="card panel">
+          <div class="panel-head">
+            <h2>Money received</h2>
+            <span class="panel-meta">Today</span>
+          </div>
+          <DonutChart
+            :slices="slices"
+            center-label="Received today"
+            empty-text="No money received yet"
+          />
+        </div>
+      </section>
+
+      <section class="lower-row">
+        <div class="card panel">
+          <div class="panel-head">
+            <h2>Top products</h2>
+            <span class="panel-meta">Last 7 days</span>
+          </div>
+          <p v-if="!full.top_products.length" class="empty-note">
+            Nothing sold yet — your best sellers will rank here.
+          </p>
+          <ul v-else class="top">
+            <li v-for="p in full.top_products" :key="p.product_id">
+              <div class="top-line">
+                <span class="top-name">{{ p.name }}</span>
+                <span class="amount">{{ formatUgx(p.revenue) }}</span>
+              </div>
+              <span class="track">
+                <span class="fill" :style="{ width: (p.revenue / topMax) * 100 + '%' }" />
+              </span>
+              <span class="muted">{{ formatQuantity(p.quantity) }} sold</span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="card panel">
+          <div class="panel-head">
+            <h2>Stock alerts</h2>
+            <RouterLink to="/reports?tab=stock" class="link small">View</RouterLink>
+          </div>
+          <div class="alerts">
+            <div class="alert-box" :class="{ bad: full.stock.out > 0 }">
+              <span class="big">{{ full.stock.out }}</span>
+              <span class="muted">out of stock</span>
+            </div>
+            <div class="alert-box" :class="{ warn: full.stock.low > 0 }">
+              <span class="big">{{ full.stock.low }}</span>
+              <span class="muted">running low</span>
+            </div>
+          </div>
+          <p v-if="!full.stock.attention.length" class="muted note">
+            All {{ full.stock.products }} products are comfortably stocked.
+          </p>
+          <ul v-else class="mini">
+            <li v-for="p in full.stock.attention" :key="p.id">
+              <span class="mini-name">{{ p.name }}</span>
+              <span class="tag" :class="p.status">
+                {{ p.status === 'out' ? 'Out' : `${formatQuantity(p.stock)} left` }}
+              </span>
+            </li>
+          </ul>
+        </div>
+
+        <div class="card panel">
+          <div class="panel-head">
+            <h2>Customer debt</h2>
+            <RouterLink to="/credit" class="link small">View</RouterLink>
+          </div>
+          <p class="big-money">{{ formatUgx(full.debt.total_owed) }}</p>
+          <p class="muted">
+            owed by {{ full.debt.customers_owing }}
+            {{ full.debt.customers_owing === 1 ? 'customer' : 'customers' }}
+          </p>
+          <p v-if="full.debt.overdue" class="overdue">
+            {{ formatUgx(full.debt.overdue) }} is past its due date
+          </p>
+          <ul v-if="full.debt.top.length" class="mini">
+            <li v-for="c in full.debt.top" :key="c.id">
+              <RouterLink :to="`/customers/${c.id}`" class="mini-name link">{{
+                c.name
+              }}</RouterLink>
+              <span class="amount">{{ formatUgx(c.balance) }}</span>
+            </li>
+          </ul>
+        </div>
+      </section>
+
+      <section class="card panel">
         <div class="panel-head">
-          <h2>Get set up</h2>
-          <span class="panel-meta">{{ setupProgress.done }} of {{ setupProgress.total }}</span>
+          <h2>Recent sales</h2>
+          <RouterLink to="/sales" class="link small">All sales</RouterLink>
         </div>
-
-        <div class="progress-track">
-          <div class="progress-fill" :style="{ width: setupProgress.percent + '%' }" />
+        <div v-if="brandNew" class="empty-note">
+          <p>No sales yet. Once you make your first sale it shows up here.</p>
+          <RouterLink to="/pos" class="btn btn-primary small">Make your first sale</RouterLink>
         </div>
-
-        <ul class="checklist">
-          <li v-for="step in setupSteps" :key="step.label" :class="{ done: step.done }">
-            <span class="checkbox">{{ step.done ? '✓' : '' }}</span>
-            {{ step.label }}
+        <ul v-else class="recent">
+          <li v-for="s in full.recent_sales" :key="s.id">
+            <RouterLink :to="`/sales/${s.id}`" class="link">{{ s.sale_number }}</RouterLink>
+            <span class="muted">{{ shown(s.created_at) }}</span>
+            <span class="who">
+              {{ s.customer ?? 'Walk-in' }}
+              <span class="muted">· {{ s.cashier }}</span>
+              <span v-if="s.status === 'voided'" class="pill">Voided</span>
+            </span>
+            <span class="amount" :class="{ struck: s.status === 'voided' }">{{
+              formatUgx(s.total)
+            }}</span>
           </li>
         </ul>
-      </div>
-
-      <div class="card panel">
-        <div class="panel-head">
-          <h2>Top products</h2>
-          <span class="panel-meta">This week</span>
-        </div>
-
-        <div class="table-head">
-          <span>Product</span>
-          <span>Sold</span>
-          <span>Revenue</span>
-        </div>
-        <p class="empty-note">Nothing sold yet — your best sellers will rank here.</p>
-      </div>
-
-      <div class="card panel">
-        <div class="panel-head">
-          <h2>Low stock alerts</h2>
-          <span class="panel-meta">0 items</span>
-        </div>
-
-        <p class="empty-note">
-          All good — nothing is running low. Products that fall below their reorder level will
-          appear here.
-        </p>
-      </div>
-    </section>
-
-    <section>
-      <div class="card panel">
-        <div class="panel-head">
-          <h2>Recent activity</h2>
-        </div>
-        <p class="empty-note">
-          Sales, stock changes, and payments will show up here as they happen.
-        </p>
-      </div>
-    </section>
+      </section>
+    </template>
   </main>
 </template>
 
@@ -183,6 +356,14 @@ const setupProgress = computed(() => {
   gap: 1.25rem;
 }
 
+.dashboard-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
 .eyebrow {
   font-size: 0.75rem;
   font-weight: 600;
@@ -196,312 +377,328 @@ h1 {
   font-size: 1.5rem;
 }
 
+.refresh {
+  padding: 0.4375rem 0.875rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-ink-soft);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.refresh:hover:not(:disabled) {
+  border-color: var(--color-primary);
+  color: var(--color-ink);
+}
+
+.stamp {
+  color: var(--color-ink-faint);
+}
+
+.state {
+  padding: 3rem 1rem;
+  text-align: center;
+  color: var(--color-ink-faint);
+}
+
 .stat-grid {
   display: grid;
-  grid-template-columns: repeat(4, 1fr);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1.25rem;
 }
 
-.stat-card {
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-  padding: 1.5rem;
-}
-
-.stat-icon-badge {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  flex-shrink: 0;
-  border-radius: var(--radius-md);
-  background: var(--color-primary-soft);
-  color: var(--color-primary);
-}
-
-.stat-label {
-  font-size: 0.8125rem;
-  color: var(--color-ink-faint);
-}
-
-.stat-value {
-  margin-top: 0.25rem;
-  font-size: 1.5rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
-}
-
-.stat-hint {
-  margin-top: 0.25rem;
-  font-size: 0.75rem;
-  color: var(--color-ink-faint);
+.stat-grid.three {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
 .chart-row {
   display: grid;
-  grid-template-columns: 2fr 1fr;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr);
   gap: 1.25rem;
 }
 
 .lower-row {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 1.25rem;
 }
 
 .panel {
   padding: 1.5rem;
+  min-width: 0;
 }
 
 .panel-head {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
+  gap: 0.25rem 0.75rem;
+  margin-bottom: 1.25rem;
 }
 
 .panel-head h2 {
   font-size: 0.9375rem;
 }
 
-.panel-meta {
+.panel-meta,
+.muted {
   font-size: 0.75rem;
   color: var(--color-ink-faint);
 }
 
-/* Bar chart (empty state) */
-.bar-chart {
-  position: relative;
-  height: 260px;
-  margin-top: 1.5rem;
-  display: flex;
-  flex-direction: column;
-}
-
-.gridlines {
-  position: absolute;
-  inset: 0 0 1.75rem 0;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-}
-
-.gridline {
-  border-top: 1px dashed var(--color-border);
-}
-
-.bars {
-  position: relative;
-  flex: 1;
-  display: grid;
-  grid-template-columns: repeat(7, 1fr);
-  gap: 0.75rem;
-  align-items: end;
-  padding: 0 0.5rem;
-}
-
-.bar-col {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.bar {
-  width: 100%;
-  max-width: 44px;
-  height: 3px;
-  border-radius: 2px;
-  background: var(--color-border-strong);
-}
-
-.bar-label {
-  font-size: 0.75rem;
-  color: var(--color-ink-faint);
-}
-
-.chart-empty {
-  position: absolute;
-  inset: 0 0 1.75rem 0;
-  display: grid;
-  place-items: center;
-  font-size: 0.875rem;
-  color: var(--color-ink-faint);
-  pointer-events: none;
-}
-
-/* Donut (empty state) */
-.donut-wrap {
-  display: grid;
-  place-items: center;
-  margin: 1.5rem 0;
-}
-
-.donut {
-  position: relative;
-  width: 160px;
-  height: 160px;
-  border-radius: 50%;
-  background: conic-gradient(var(--color-border) 0 100%);
-}
-
-.donut::after {
-  content: '';
-  position: absolute;
-  inset: 22px;
-  border-radius: 50%;
-  background: var(--color-surface);
-}
-
-.donut-center {
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.125rem;
-}
-
-.donut-value {
-  font-size: 1.25rem;
-  font-weight: 600;
-}
-
-.donut-label {
-  font-size: 0.6875rem;
-  color: var(--color-ink-faint);
-}
-
-.legend {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 0.625rem;
-  padding: 0;
-}
-
-.legend li {
-  display: flex;
-  align-items: center;
-  gap: 0.625rem;
+.small {
   font-size: 0.8125rem;
 }
 
-.legend-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  flex-shrink: 0;
+.btn.small {
+  padding: 0.4375rem 0.875rem;
+  text-decoration: none;
 }
 
-.legend-label {
-  flex: 1;
-  color: var(--color-ink-soft);
+.up {
+  color: var(--color-primary);
 }
 
-.legend-value {
+.down {
+  color: var(--color-danger);
+}
+
+.empty-note {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.75rem;
+  color: var(--color-ink-faint);
+  font-size: 0.875rem;
+}
+
+.top {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+}
+
+.top li {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.top-line {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  font-size: 0.875rem;
+}
+
+.top-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.amount {
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.amount.struck {
+  text-decoration: line-through;
   color: var(--color-ink-faint);
 }
 
-/* Checklist */
-.progress-track {
+.track {
   height: 6px;
-  margin-top: 1rem;
   border-radius: 3px;
   background: var(--color-border);
   overflow: hidden;
 }
 
-.progress-fill {
+.fill {
+  display: block;
   height: 100%;
   border-radius: 3px;
-  background: var(--color-primary);
-  transition: width 0.3s;
+  background: var(--chart-1);
 }
 
-.checklist {
-  list-style: none;
-  margin-top: 1.25rem;
+.alerts {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.alert-box {
   display: flex;
   flex-direction: column;
+  padding: 0.875rem 1rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+}
+
+.alert-box.bad {
+  border-color: transparent;
+  background: var(--color-danger-soft);
+}
+
+.alert-box.bad .big {
+  color: var(--color-danger);
+}
+
+.alert-box.warn {
+  border-color: transparent;
+  background: rgba(217, 119, 6, 0.12);
+}
+
+.alert-box.warn .big {
+  color: var(--chart-2);
+}
+
+.big {
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.note {
+  margin-top: 0.875rem;
+}
+
+.mini {
+  list-style: none;
+  padding: 0;
+  margin-top: 1rem;
+  display: flex;
+  flex-direction: column;
+}
+
+.mini li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: 0.75rem;
+  padding: 0.5rem 0;
+  border-top: 1px solid var(--color-border);
+  font-size: 0.875rem;
+}
+
+.mini-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tag {
+  flex-shrink: 0;
+  padding: 0.0625rem 0.5rem;
+  border-radius: 999px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+  background: rgba(217, 119, 6, 0.12);
+  color: var(--chart-2);
+}
+
+.tag.out {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.big-money {
+  font-size: 1.75rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  font-variant-numeric: tabular-nums;
+}
+
+.overdue {
+  margin-top: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--radius-sm);
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+  font-size: 0.8125rem;
+  font-weight: 500;
+}
+
+.recent {
+  list-style: none;
   padding: 0;
 }
 
-.checklist li {
-  display: flex;
+.recent li {
+  display: grid;
+  grid-template-columns: 7rem 10rem minmax(0, 1fr) auto;
   align-items: center;
-  gap: 0.625rem;
+  gap: 1rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--color-border);
   font-size: 0.875rem;
-  color: var(--color-ink-faint);
 }
 
-.checklist li.done {
-  color: var(--color-ink);
+.recent li:first-child {
+  border-top: none;
+  padding-top: 0;
 }
 
-.checkbox {
-  display: grid;
-  place-items: center;
-  width: 18px;
-  height: 18px;
-  border-radius: 50%;
-  border: 1px solid var(--color-border-strong);
-  font-size: 0.6875rem;
-  flex-shrink: 0;
+.who {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.checklist li.done .checkbox {
-  background: var(--color-primary);
-  border-color: var(--color-primary);
-  color: var(--color-on-primary);
-}
-
-/* Tables / empty states */
-.table-head {
-  display: grid;
-  grid-template-columns: 1fr 60px 90px;
-  gap: 0.5rem;
-  margin-top: 1.25rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--color-border);
+.pill {
+  margin-left: 0.5rem;
+  padding: 0.0625rem 0.5rem;
+  border-radius: 999px;
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
   font-size: 0.6875rem;
   font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--color-ink-faint);
-}
-
-.empty-note {
-  margin-top: 1rem;
-  font-size: 0.875rem;
-  color: var(--color-ink-faint);
 }
 
 @media (max-width: 1100px) {
   .stat-grid {
-    grid-template-columns: repeat(2, 1fr);
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
-  .lower-row {
-    grid-template-columns: 1fr 1fr;
-  }
-}
 
-@media (max-width: 860px) {
-  .dashboard {
-    padding: 1.5rem 1rem 2rem;
-  }
   .chart-row,
   .lower-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: minmax(0, 1fr);
   }
 }
 
-@media (max-width: 480px) {
-  .stat-grid {
-    grid-template-columns: 1fr;
+@media (max-width: 720px) {
+  .dashboard {
+    padding: 1.25rem 1rem 2rem;
+  }
+
+  .stat-grid,
+  .stat-grid.three {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .recent li {
+    grid-template-columns: minmax(0, 1fr) auto;
+    row-gap: 0.125rem;
+  }
+
+  .recent li .muted {
+    grid-column: 1;
+  }
+
+  .recent li .who {
+    grid-column: 1;
+  }
+
+  .recent li .amount {
+    grid-column: 2;
+    grid-row: 1 / span 3;
   }
 }
 </style>
