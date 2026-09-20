@@ -120,6 +120,36 @@ const router = createRouter({
       meta: { requiresAuth: true, title: 'Inventory', managerOnly: true },
     },
     {
+      path: '/suppliers',
+      name: 'suppliers',
+      component: () => import('../views/suppliers/SuppliersView.vue'),
+      meta: { requiresAuth: true, title: 'Suppliers', managerOnly: true },
+    },
+    {
+      path: '/suppliers/:id',
+      name: 'supplier-detail',
+      component: () => import('../views/suppliers/SupplierDetailView.vue'),
+      meta: { requiresAuth: true, title: 'Supplier', managerOnly: true },
+    },
+    {
+      path: '/purchases',
+      name: 'purchases',
+      component: () => import('../views/purchases/PurchasesView.vue'),
+      meta: { requiresAuth: true, title: 'Purchases', managerOnly: true },
+    },
+    {
+      path: '/purchases/new',
+      name: 'purchase-new',
+      component: () => import('../views/purchases/NewPurchaseView.vue'),
+      meta: { requiresAuth: true, title: 'New purchase', managerOnly: true },
+    },
+    {
+      path: '/purchases/:id',
+      name: 'purchase-detail',
+      component: () => import('../views/purchases/PurchaseDetailView.vue'),
+      meta: { requiresAuth: true, title: 'Purchase', managerOnly: true },
+    },
+    {
       path: '/shifts',
       name: 'shifts',
       component: () => import('../views/shifts/ShiftsView.vue'),
