@@ -37,6 +37,15 @@ Stick to your own module's views/components/stores unless coordinating a shared 
 - **Add your screen to `src/router/nav.ts`** with `ready: true` and a real route in `src/router/index.ts`; use `managerOnly: true` for screens cashiers shouldn't see (the server still enforces it).
 - **Test in a browser**, on a phone-sized viewport too. Type-checking and a build don't tell you the till is usable.
 
+## Working offline (the installed app)
+
+The app can be installed from the browser and opens with no connection. A service worker, written to `dist/sw.js` by the `appShell` plugin in `vite.config.ts`, saves the app's own files; the API is never cached there (sales and the catalogue are kept by the app itself in IndexedDB).
+
+- It only runs in a production build, so `npm run dev` is never affected. To try it: `npm run build && npx vite preview`, open the preview address, then turn the network off in DevTools and reload.
+- Nothing to maintain by hand: every build lists its own files and gets a new version. A new version waits until the person taps **Reload** on the banner, so nobody is reloaded in the middle of a sale.
+- The signed-in account (name and roles) is kept on the device so a reload while offline still shows the right menu. The server still decides what anyone may do.
+- When you add a screen that loads data, catch the failure and show a message. Offline is a normal state here, not an error to crash on.
+
 ## Branching & PRs
 
 - Branch off `main`: `feature/<your-module>-<short-description>` (e.g. `feature/pos-cart-discounts`)

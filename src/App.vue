@@ -7,6 +7,7 @@ import NavIcon from '@/components/NavIcon.vue'
 import SyncStatus from '@/components/SyncStatus.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import { useSyncStore } from '@/stores/sync'
+import { applyUpdate, updateReady } from '@/lib/pwa'
 
 const auth = useAuthStore()
 const router = useRouter()
@@ -92,9 +93,43 @@ async function onLogout() {
   </div>
 
   <RouterView v-else />
+
+  <div v-if="updateReady" class="update-toast" role="status">
+    <span>A new version is ready.</span>
+    <button type="button" @click="applyUpdate">Reload</button>
+  </div>
 </template>
 
 <style scoped>
+.update-toast {
+  position: fixed;
+  z-index: 60;
+  right: 1rem;
+  bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
+  max-width: calc(100vw - 2rem);
+  padding: 0.625rem 0.75rem 0.625rem 1rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+  font-size: 0.875rem;
+}
+
+.update-toast button {
+  min-height: 34px;
+  padding: 0 0.875rem;
+  border: none;
+  border-radius: var(--radius-sm);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
 .shell {
   display: flex;
   min-height: 100%;

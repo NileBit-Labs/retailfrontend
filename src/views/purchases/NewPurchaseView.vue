@@ -507,10 +507,9 @@ h2 {
 
 .line {
   display: grid;
-  grid-template-columns: minmax(140px, 1.3fr) 90px minmax(170px, 1.2fr) minmax(130px, 1fr) minmax(
-      110px,
-      auto
-    ) 28px;
+  grid-template-columns:
+    minmax(140px, 1.3fr) 90px minmax(170px, 1.2fr) minmax(130px, 1fr) minmax(110px, auto)
+    28px;
   align-items: start;
   gap: 0.75rem;
   padding: 0.875rem 0;
