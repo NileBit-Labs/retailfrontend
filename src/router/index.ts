@@ -189,6 +189,15 @@ router.beforeEach(async (to) => {
       }
       return
     }
+  } else if (!auth.fresh) {
+    // The saved account lets the app open at once, even offline; check it with the server in
+    // the background, so a changed role or a deactivated account is still noticed.
+    void auth.fetchMe().catch((e) => {
+      if (e instanceof ApiError && e.status === 401) {
+        auth.clearSession()
+        void router.push({ name: 'login' })
+      }
+    })
   }
 
   // The current shop is only cached locally, so a fresh browser or device has

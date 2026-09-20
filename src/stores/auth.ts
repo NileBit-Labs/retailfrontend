@@ -31,8 +31,23 @@ interface AuthResponse {
   token: string
 }
 
+const USER_KEY = 'auth_user'
+
+// The signed-in user is kept on the device so that reopening the app with no connection still
+// knows their role, and shows the right menu, instead of treating them as a stranger.
+function readCachedUser(): User | null {
+  if (!localStorage.getItem('auth_token')) return null
+  try {
+    return JSON.parse(localStorage.getItem(USER_KEY) ?? 'null') as User | null
+  } catch {
+    return null
+  }
+}
+
 export const useAuthStore = defineStore('auth', () => {
-  const user = ref<User | null>(null)
+  const user = ref<User | null>(readCachedUser())
+  // Whether the account has been re-read from the server since this page was opened.
+  const fresh = ref(false)
   const token = ref<string | null>(localStorage.getItem('auth_token'))
   const isAuthenticated = computed(() => token.value !== null)
 
@@ -43,16 +58,28 @@ export const useAuthStore = defineStore('auth', () => {
   const canManage = computed(() => currentRole.value === 'owner' || currentRole.value === 'manager')
   const isOwner = computed(() => currentRole.value === 'owner')
 
+  function keepUser(next: User) {
+    user.value = next
+    try {
+      localStorage.setItem(USER_KEY, JSON.stringify(next))
+    } catch {
+      // Storage full or blocked: the account still works, just not offline after a reload.
+    }
+  }
+
   function setSession(response: AuthResponse) {
-    user.value = response.user
+    keepUser(response.user)
+    fresh.value = true
     token.value = response.token
     localStorage.setItem('auth_token', response.token)
   }
 
   function clearSession() {
     user.value = null
+    fresh.value = false
     token.value = null
     localStorage.removeItem('auth_token')
+    localStorage.removeItem(USER_KEY)
     useShopStore().clearCurrentShop()
     useShiftStore().reset()
   }
@@ -87,11 +114,13 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function fetchMe() {
-    user.value = await apiFetch<User>('/auth/me')
+    keepUser(await apiFetch<User>('/auth/me'))
+    fresh.value = true
   }
 
   return {
     user,
+    fresh,
     token,
     isAuthenticated,
     currentRole,
