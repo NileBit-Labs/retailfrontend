@@ -269,11 +269,12 @@ async function changePassword() {
 .page {
   flex: 1;
   width: 100%;
-  max-width: 820px;
+  max-width: 1680px;
   margin: 0 auto;
-  padding: 2rem;
-  display: flex;
-  flex-direction: column;
+  padding: 1.75rem 2rem 2.5rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
   gap: 1.25rem;
 }
 
@@ -288,6 +289,16 @@ async function changePassword() {
 h1 {
   margin-top: 0.25rem;
   font-size: 1.5rem;
+}
+
+.page > header {
+  grid-column: 1 / -1;
+}
+
+@media (max-width: 1100px) {
+  .page {
+    grid-template-columns: 1fr;
+  }
 }
 
 .block {

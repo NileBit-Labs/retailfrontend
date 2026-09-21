@@ -61,62 +61,64 @@ onMounted(load)
         </div>
       </header>
 
-      <div class="actions">
-        <button
-          v-if="customer.balance > 0"
-          type="button"
-          class="btn btn-primary"
-          @click="paying = true"
-        >
-          Record repayment
-        </button>
-        <button v-if="auth.canManage" type="button" class="btn" @click="editing = true">
-          Edit
-        </button>
+      <div class="cols" :class="{ single: !auth.canManage }">
+        <section v-if="auth.canManage" class="card block">
+          <h2>Account history</h2>
+          <p v-if="!ledger.length" class="muted">Nothing yet.</p>
+          <table v-else>
+            <thead>
+              <tr>
+                <th>Date</th>
+                <th>What happened</th>
+                <th class="num">Amount</th>
+                <th class="num">Balance</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr v-for="entry in ledger" :key="entry.id">
+                <td>{{ formatDateTime(entry.created_at) }}</td>
+                <td>
+                  {{ LEDGER_LABELS[entry.type] }}
+                  <span v-if="entry.note" class="muted"> · {{ entry.note }}</span>
+                </td>
+                <td class="num" :class="entry.amount > 0 ? 'owes' : 'paid'">
+                  {{ entry.amount > 0 ? '+' : '−' }}{{ formatUgx(Math.abs(entry.amount)) }}
+                </td>
+                <td class="num">{{ formatUgx(entry.balance_after) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </section>
+        <div class="side">
+          <div class="actions">
+            <button
+              v-if="customer.balance > 0"
+              type="button"
+              class="btn btn-primary"
+              @click="paying = true"
+            >
+              Record repayment
+            </button>
+            <button v-if="auth.canManage" type="button" class="btn" @click="editing = true">
+              Edit
+            </button>
+          </div>
+          <section v-if="customer.open_sales?.length" class="card block">
+            <h2>Still owed for</h2>
+            <ul class="open">
+              <li v-for="sale in customer.open_sales" :key="sale.sale_id">
+                <RouterLink class="link" :to="`/sales/${sale.sale_id}`">{{
+                  sale.sale_number
+                }}</RouterLink>
+                <span class="muted">{{
+                  sale.due_date ? `pay by ${sale.due_date}` : 'no due date'
+                }}</span>
+                <strong>{{ formatUgx(sale.owed) }}</strong>
+              </li>
+            </ul>
+          </section>
+        </div>
       </div>
-
-      <section v-if="customer.open_sales?.length" class="card block">
-        <h2>Still owed for</h2>
-        <ul class="open">
-          <li v-for="sale in customer.open_sales" :key="sale.sale_id">
-            <RouterLink class="link" :to="`/sales/${sale.sale_id}`">{{
-              sale.sale_number
-            }}</RouterLink>
-            <span class="muted">{{
-              sale.due_date ? `pay by ${sale.due_date}` : 'no due date'
-            }}</span>
-            <strong>{{ formatUgx(sale.owed) }}</strong>
-          </li>
-        </ul>
-      </section>
-
-      <section v-if="auth.canManage" class="card block">
-        <h2>Account history</h2>
-        <p v-if="!ledger.length" class="muted">Nothing yet.</p>
-        <table v-else>
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>What happened</th>
-              <th class="num">Amount</th>
-              <th class="num">Balance</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="entry in ledger" :key="entry.id">
-              <td>{{ formatDateTime(entry.created_at) }}</td>
-              <td>
-                {{ LEDGER_LABELS[entry.type] }}
-                <span v-if="entry.note" class="muted"> · {{ entry.note }}</span>
-              </td>
-              <td class="num" :class="entry.amount > 0 ? 'owes' : 'paid'">
-                {{ entry.amount > 0 ? '+' : '−' }}{{ formatUgx(Math.abs(entry.amount)) }}
-              </td>
-              <td class="num">{{ formatUgx(entry.balance_after) }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </section>
     </template>
 
     <RepaymentModal
@@ -136,12 +138,36 @@ onMounted(load)
 </template>
 
 <style scoped>
+.cols {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 380px;
+  gap: 1.25rem;
+  align-items: start;
+}
+
+.cols.single {
+  grid-template-columns: minmax(0, 560px);
+}
+
+.side {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+@media (max-width: 1000px) {
+  .cols,
+  .cols.single {
+    grid-template-columns: 1fr;
+  }
+}
+
 .page {
   flex: 1;
   width: 100%;
-  max-width: 860px;
+  max-width: 1680px;
   margin: 0 auto;
-  padding: 2rem 1rem;
+  padding: 1.75rem 2rem 2.5rem;
   display: flex;
   flex-direction: column;
   gap: 1.25rem;
