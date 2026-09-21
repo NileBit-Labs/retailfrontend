@@ -41,6 +41,8 @@ interface RequestOptions {
   method?: 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE'
   body?: unknown
   shopId?: number | string
+  // Most calls should fail fast on a weak connection; the AI assistant may legitimately take a while.
+  timeoutMs?: number
 }
 
 export async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {
@@ -58,7 +60,7 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
   if (shopId) headers['X-Shop-Id'] = String(shopId)
 
   const controller = new AbortController()
-  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+  const timer = setTimeout(() => controller.abort(), options.timeoutMs ?? REQUEST_TIMEOUT_MS)
 
   let response: Response
   try {

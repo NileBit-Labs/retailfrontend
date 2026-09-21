@@ -150,6 +150,12 @@ const router = createRouter({
       meta: { requiresAuth: true, title: 'Purchase', managerOnly: true },
     },
     {
+      path: '/ask',
+      name: 'ask',
+      component: () => import('../views/ask/AskView.vue'),
+      meta: { requiresAuth: true, title: 'Ask Your Shop', managerOnly: true },
+    },
+    {
       path: '/shifts',
       name: 'shifts',
       component: () => import('../views/shifts/ShiftsView.vue'),
