@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import PaginationBar from '@/components/PaginationBar.vue'
+import { usePerPage } from '@/lib/paging'
 import { onMounted, onUnmounted, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { apiErrorMessage, apiFetch } from '@/lib/api'
@@ -25,12 +27,16 @@ const status = ref('')
 const from = ref('')
 const to = ref('')
 const pageNo = ref(1)
+const perPage = usePerPage('purchases')
 
 async function load() {
   loading.value = true
   error.value = ''
   try {
-    const params = new URLSearchParams({ page: String(pageNo.value) })
+    const params = new URLSearchParams({
+      page: String(pageNo.value),
+      per_page: String(perPage.value),
+    })
     if (search.value.trim()) params.set('search', search.value.trim())
     if (supplierId.value) params.set('supplier_id', supplierId.value)
     if (status.value) params.set('status', status.value)
@@ -59,6 +65,11 @@ function refilter() {
 function goTo(n: number) {
   pageNo.value = n
   void load()
+}
+
+function changeSize(n: number) {
+  perPage.value = n
+  refilter()
 }
 
 onMounted(async () => {
@@ -174,29 +185,17 @@ onMounted(async () => {
         </table>
       </div>
 
-      <div v-if="page && page.last_page > 1" class="ui-pager">
-        <span
-          >Page {{ page.current_page }} of {{ page.last_page }} · {{ page.total }} purchases</span
-        >
-        <div>
-          <button
-            type="button"
-            class="btn ui-btn-secondary"
-            :disabled="page.current_page <= 1"
-            @click="goTo(page.current_page - 1)"
-          >
-            Previous
-          </button>
-          <button
-            type="button"
-            class="btn ui-btn-secondary"
-            :disabled="page.current_page >= page.last_page"
-            @click="goTo(page.current_page + 1)"
-          >
-            Next
-          </button>
-        </div>
-      </div>
+      <PaginationBar
+        v-if="page"
+        :page="page.current_page"
+        :last-page="page.last_page"
+        :total="page.total"
+        :per-page="perPage"
+        :disabled="loading"
+        noun="purchases"
+        @update:page="goTo"
+        @update:per-page="changeSize"
+      />
     </div>
   </main>
 </template>

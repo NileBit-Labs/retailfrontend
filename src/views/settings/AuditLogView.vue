@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import PaginationBar from '@/components/PaginationBar.vue'
+import { usePerPage } from '@/lib/paging'
 import { computed, onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { apiErrorMessage, apiFetch } from '@/lib/api'
@@ -16,6 +18,7 @@ const to = ref(today)
 const action = ref('')
 const person = ref('')
 const pageNumber = ref(1)
+const perPage = usePerPage('audit-log')
 
 const result = ref<AuditPage | null>(null)
 const staff = ref<StaffMember[]>([])
@@ -95,6 +98,7 @@ async function load() {
       from: from.value,
       to: to.value,
       page: String(pageNumber.value),
+      per_page: String(perPage.value),
     })
     if (action.value) params.set('action', action.value)
     if (person.value) params.set('user_id', person.value)
@@ -112,9 +116,14 @@ function refilter() {
   void load()
 }
 
-function go(delta: number) {
-  pageNumber.value += delta
+function goTo(n: number) {
+  pageNumber.value = n
   void load()
+}
+
+function changeSize(n: number) {
+  perPage.value = n
+  refilter()
 }
 
 const last30 = () => {
@@ -245,27 +254,17 @@ onMounted(async () => {
         </table>
       </div>
 
-      <footer v-if="result && result.page.last_page > 1" class="pager">
-        <button
-          type="button"
-          class="btn-quiet"
-          :disabled="pageNumber <= 1 || loading"
-          @click="go(-1)"
-        >
-          Newer
-        </button>
-        <span class="muted"
-          >Page {{ result.page.current_page }} of {{ result.page.last_page }}</span
-        >
-        <button
-          type="button"
-          class="btn-quiet"
-          :disabled="pageNumber >= result.page.last_page || loading"
-          @click="go(1)"
-        >
-          Older
-        </button>
-      </footer>
+      <PaginationBar
+        v-if="result"
+        :page="result.page.current_page"
+        :last-page="result.page.last_page"
+        :total="result.page.total"
+        :per-page="perPage"
+        :disabled="loading"
+        noun="entries"
+        @update:page="goTo"
+        @update:per-page="changeSize"
+      />
     </div>
   </main>
 </template>
@@ -274,7 +273,7 @@ onMounted(async () => {
 .page {
   flex: 1;
   width: 100%;
-  max-width: 1100px;
+  max-width: 1680px;
   margin: 0 auto;
   padding: 2rem;
   display: flex;

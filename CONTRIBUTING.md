@@ -35,6 +35,8 @@ Stick to your own module's views/components/stores unless coordinating a shared 
 - **Writes that matter must survive a bad connection.** Give the action one idempotency key for its whole life and reuse it on retry (see the cart's checkout). Sales already queue offline; if your module adds a write that shops will do without internet, route it through the same outbox/sync path rather than inventing another.
 - **Follow the design tokens** in `src/assets/base.css` (`--color-*`, `--radius-*`, `.card`, `.btn`, `.field`) so light and dark mode both work. Don't hard-code colours; use `--color-on-primary` for text on primary backgrounds.
 - **Add your screen to `src/router/nav.ts`** with `ready: true` and a real route in `src/router/index.ts`; use `managerOnly: true` for screens cashiers shouldn't see (the server still enforces it).
+- **Screens live inside the app shell.** The sidebar and header are fixed and only the content area scrolls, so never size a page with `100vh`/`100dvh`. Use `.ui-page` (fills the width, capped at 1680px) or `flex: 1`; the Sell screen is the model for a screen that fills the height.
+- **Lists get `PaginationBar`** (`src/components/PaginationBar.vue`): "Showing 1–25 of 60", rows per page (10/25/50/100, remembered per list) and page numbers. Lists the server pages send `per_page` (use `usePerPage`); lists the server sends whole use `useClientPage` from `src/lib/paging.ts`.
 - **Test in a browser**, on a phone-sized viewport too. Type-checking and a build don't tell you the till is usable.
 
 ## Working offline (the installed app)

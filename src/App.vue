@@ -2,6 +2,7 @@
 import { computed, ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
+import { useShopStore } from '@/stores/shop'
 import { navGroups } from '@/router/nav'
 import NavIcon from '@/components/NavIcon.vue'
 import SyncStatus from '@/components/SyncStatus.vue'
@@ -10,6 +11,7 @@ import { useSyncStore } from '@/stores/sync'
 import { applyUpdate, updateReady } from '@/lib/pwa'
 
 const auth = useAuthStore()
+const shopStore = useShopStore()
 const router = useRouter()
 const route = useRoute()
 const sidebarOpen = ref(false)
@@ -24,6 +26,29 @@ const visibleGroups = computed(() =>
     }))
     .filter((g) => g.items.length),
 )
+const ROLE_LABELS: Record<string, string> = {
+  owner: 'Owner',
+  manager: 'Manager',
+  cashier: 'Cashier',
+}
+const roleLabel = computed(() => ROLE_LABELS[auth.currentRole ?? ''] ?? '')
+const initials = computed(() =>
+  (auth.user?.name ?? '?')
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((w) => w[0]!.toUpperCase())
+    .join(''),
+)
+const pageTitle = computed(() => (route.meta.title as string | undefined) ?? 'Dashboard')
+
+// Only the content area scrolls, so a new page should start at its top.
+const scroller = ref<HTMLElement | null>(null)
+watch(
+  () => route.path,
+  () => scroller.value?.scrollTo({ top: 0 }),
+)
+
 const showShell = computed(() => auth.isAuthenticated && !route.meta.standalone)
 
 watch(
@@ -52,7 +77,7 @@ async function onLogout() {
   <div v-if="showShell" class="shell">
     <div v-if="sidebarOpen" class="scrim" @click="sidebarOpen = false" />
 
-    <aside class="sidebar" :class="{ open: sidebarOpen }">
+    <aside class="sidebar" :class="{ open: sidebarOpen }" aria-label="Main menu">
       <RouterLink to="/" class="brand" @click="sidebarOpen = false">
         <span class="brand-mark">N</span>
         <span class="brand-name">NileBit<span class="brand-name-accent">Retail</span></span>
@@ -69,31 +94,51 @@ async function onLogout() {
             @click="sidebarOpen = false"
           >
             <NavIcon :name="item.icon" />
-            {{ item.label }}
+            <span>{{ item.label }}</span>
           </RouterLink>
         </div>
       </nav>
-
-      <div class="sidebar-footer">
-        <SyncStatus />
-        <ThemeToggle />
-        <div class="user-block">
-          <span class="user-name">{{ auth.user?.name }}</span>
-          <button class="btn-link" @click="onLogout">Log out</button>
-        </div>
-      </div>
     </aside>
 
-    <div class="content-area">
-      <header class="mobile-topbar">
+    <div class="main-col">
+      <header class="topbar">
         <button class="hamburger" aria-label="Open menu" @click="sidebarOpen = true">
           <span /><span /><span />
         </button>
-        <span class="mobile-title">{{ (route.meta.title as string) ?? 'Dashboard' }}</span>
-        <SyncStatus class="mobile-sync" />
+
+        <div class="crumbs">
+          <span v-if="shopStore.currentShop" class="shop-name">{{
+            shopStore.currentShop.name
+          }}</span>
+          <span v-if="shopStore.currentShop" class="sep" aria-hidden="true">/</span>
+          <h1 class="page-name">{{ pageTitle }}</h1>
+        </div>
+
+        <div class="topbar-actions">
+          <SyncStatus />
+          <ThemeToggle />
+          <span class="divider" aria-hidden="true" />
+          <div class="user" :title="auth.user?.email">
+            <span class="avatar" aria-hidden="true">{{ initials }}</span>
+            <span class="user-text">
+              <strong>{{ auth.user?.name }}</strong>
+              <small>{{ roleLabel }}</small>
+            </span>
+          </div>
+          <button type="button" class="logout" @click="onLogout">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3" />
+              <polyline points="16 8 20 12 16 16" />
+              <line x1="20" y1="12" x2="9" y2="12" />
+            </svg>
+            <span class="logout-label">Log out</span>
+          </button>
+        </div>
       </header>
 
-      <RouterView />
+      <div ref="scroller" class="content">
+        <RouterView />
+      </div>
     </div>
   </div>
 
@@ -135,17 +180,34 @@ async function onLogout() {
   cursor: pointer;
 }
 
+/* The shell is exactly one screen tall: the sidebar and header stay where they are and only
+   the content area scrolls. */
 .shell {
   display: flex;
-  min-height: 100%;
+  height: 100vh;
+  height: 100dvh;
   width: 100%;
+  overflow: hidden;
+}
+
+/* ---- Sidebar ---- */
+
+.sidebar {
+  display: flex;
+  flex-direction: column;
+  width: 264px;
+  flex-shrink: 0;
+  background: var(--color-surface);
+  border-right: 1px solid var(--color-border);
 }
 
 .brand {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  padding: 1rem 1.25rem;
+  gap: 0.75rem;
+  height: 64px;
+  padding: 0 1.25rem;
+  border-bottom: 1px solid var(--color-border);
   text-decoration: none;
   flex-shrink: 0;
 }
@@ -153,19 +215,19 @@ async function onLogout() {
 .brand-mark {
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
+  width: 34px;
+  height: 34px;
   border-radius: var(--radius-sm);
   background: var(--color-primary);
   color: var(--color-on-primary);
   font-weight: 700;
-  font-size: 0.875rem;
+  font-size: 1.0625rem;
   flex-shrink: 0;
 }
 
 .brand-name {
   font-weight: 700;
-  font-size: 1rem;
+  font-size: 1.1875rem;
   color: var(--color-ink);
   letter-spacing: -0.01em;
 }
@@ -175,37 +237,23 @@ async function onLogout() {
   font-weight: 500;
 }
 
-.sidebar {
-  display: flex;
-  flex-direction: column;
-  width: 240px;
-  flex-shrink: 0;
-  background: var(--color-surface);
-  border-right: 1px solid var(--color-border);
-  position: sticky;
-  top: 0;
-  height: 100vh;
-  height: 100dvh;
-  overflow: hidden;
-}
-
 .nav {
   flex: 1;
   min-height: 0;
   overflow-y: auto;
-  padding: 0.5rem 0.75rem;
+  padding: 0.875rem 0.875rem 1.25rem;
 }
 
-.nav-group {
-  margin-bottom: 1rem;
+.nav-group + .nav-group {
+  margin-top: 1rem;
 }
 
 .nav-group-label {
-  padding: 0 0.625rem;
-  margin-bottom: 0.25rem;
-  font-size: 0.6875rem;
+  padding: 0 0.75rem;
+  margin-bottom: 0.375rem;
+  font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
   color: var(--color-ink-faint);
 }
@@ -213,13 +261,23 @@ async function onLogout() {
 .nav-item {
   display: flex;
   align-items: center;
-  gap: 0.625rem;
-  padding: 0.5rem 0.625rem;
+  gap: 0.875rem;
+  min-height: 40px;
+  padding: 0 0.75rem;
   border-radius: var(--radius-sm);
-  font-size: 0.875rem;
+  font-size: 1rem;
   font-weight: 500;
   color: var(--color-ink-soft);
   text-decoration: none;
+  transition:
+    background-color 0.12s,
+    color 0.12s;
+}
+
+.nav-item :deep(.nav-icon) {
+  width: 22px;
+  height: 22px;
+  flex-shrink: 0;
 }
 
 .nav-item:hover {
@@ -227,88 +285,159 @@ async function onLogout() {
   color: var(--color-ink);
 }
 
-.nav-item.router-link-exact-active {
+.nav-item.router-link-exact-active,
+.nav-item.router-link-active:not([href='/']) {
   background: var(--color-primary-soft);
   color: var(--color-primary);
+  font-weight: 600;
 }
 
-.sidebar-footer {
-  flex-shrink: 0;
-  padding: 0.875rem 1rem;
-  border-top: 1px solid var(--color-border);
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 0.75rem;
-}
+/* ---- Header + content ---- */
 
-.user-block {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.5rem;
-}
-
-.user-name {
-  font-size: 0.8125rem;
-  color: var(--color-ink-soft);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.btn-link {
-  flex-shrink: 0;
-  background: none;
-  border: none;
-  padding: 0;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: var(--color-ink-faint);
-  cursor: pointer;
-}
-
-.btn-link:hover {
-  color: var(--color-primary);
-}
-
-.content-area {
+.main-col {
   flex: 1;
   display: flex;
   flex-direction: column;
   min-width: 0;
 }
 
-.mobile-topbar {
-  display: none;
+.topbar {
+  display: flex;
   align-items: center;
-  gap: 0.75rem;
-  padding: 0.875rem 1.25rem;
+  gap: 1rem;
+  height: 64px;
+  flex-shrink: 0;
+  padding: 0 1.75rem;
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
-  position: sticky;
-  top: 0;
-  z-index: 10;
 }
 
-.mobile-title {
-  font-weight: 600;
+.crumbs {
+  display: flex;
+  align-items: baseline;
+  gap: 0.625rem;
+  min-width: 0;
+}
+
+.shop-name {
+  color: var(--color-ink-faint);
   font-size: 0.9375rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.mobile-sync {
+.sep {
+  color: var(--color-border-strong);
+}
+
+.page-name {
+  font-size: 1.0625rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.875rem;
   margin-left: auto;
+  flex-shrink: 0;
+}
+
+.divider {
+  width: 1px;
+  height: 28px;
+  background: var(--color-border);
+}
+
+.user {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+
+.avatar {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.user-text {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.user-text strong {
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.user-text small {
+  color: var(--color-ink-faint);
+  font-size: 0.75rem;
+}
+
+.logout {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 38px;
+  padding: 0 0.875rem;
+  border: 1px solid var(--color-border-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-ink-soft);
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition:
+    border-color 0.12s,
+    color 0.12s;
+}
+
+.logout:hover {
+  border-color: var(--color-danger);
+  color: var(--color-danger);
+}
+
+.logout svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.75;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.content {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .hamburger {
-  display: flex;
+  display: none;
   flex-direction: column;
-  gap: 4px;
-  width: 20px;
+  justify-content: center;
+  gap: 5px;
+  width: 40px;
+  height: 40px;
+  padding: 0 9px;
   background: none;
   border: none;
-  padding: 0;
   cursor: pointer;
 }
 
@@ -322,11 +451,20 @@ async function onLogout() {
   display: none;
 }
 
+@media (max-width: 1180px) {
+  .user-text,
+  .shop-name,
+  .sep {
+    display: none;
+  }
+}
+
 @media (max-width: 860px) {
   .sidebar {
     position: fixed;
     left: 0;
     top: 0;
+    bottom: 0;
     z-index: 30;
     transform: translateX(-100%);
     transition: transform 0.2s ease;
@@ -341,12 +479,46 @@ async function onLogout() {
     display: block;
     position: fixed;
     inset: 0;
-    background: rgba(0, 0, 0, 0.35);
+    background: rgba(0, 0, 0, 0.4);
     z-index: 20;
   }
 
-  .mobile-topbar {
+  .hamburger {
     display: flex;
+  }
+
+  .topbar {
+    gap: 0.5rem;
+    padding: 0 0.75rem;
+  }
+
+  .logout-label,
+  .divider {
+    display: none;
+  }
+
+  .logout {
+    width: 38px;
+    padding: 0;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 560px) {
+  .topbar-actions {
+    gap: 0.5rem;
+  }
+
+  .topbar-actions :deep(.sync-status .label) {
+    display: none;
+  }
+
+  .topbar-actions :deep(.sync-status) {
+    padding: 0.5rem;
+  }
+
+  .avatar {
+    display: none;
   }
 }
 </style>

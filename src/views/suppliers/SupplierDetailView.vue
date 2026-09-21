@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import PaginationBar from '@/components/PaginationBar.vue'
+import { usePerPage } from '@/lib/paging'
 import { onMounted, ref } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 import PaySupplierModal from '@/components/purchasing/PaySupplierModal.vue'
@@ -13,6 +15,7 @@ const route = useRoute()
 const supplier = ref<Supplier | null>(null)
 const ledger = ref<Paginated<SupplierLedgerEntry> | null>(null)
 const ledgerPage = ref(1)
+const ledgerPerPage = usePerPage('supplier-ledger', 25)
 const error = ref('')
 const notice = ref('')
 const paying = ref(false)
@@ -30,8 +33,13 @@ async function load() {
 
 async function loadLedger() {
   ledger.value = await apiFetch<Paginated<SupplierLedgerEntry>>(
-    `/suppliers/${route.params.id}/ledger?page=${ledgerPage.value}`,
+    `/suppliers/${route.params.id}/ledger?page=${ledgerPage.value}&per_page=${ledgerPerPage.value}`,
   )
+}
+
+function changeSize(n: number) {
+  ledgerPerPage.value = n
+  goTo(1)
 }
 
 function goTo(n: number) {
@@ -158,27 +166,16 @@ onMounted(load)
           </table>
         </div>
 
-        <div v-if="ledger && ledger.last_page > 1" class="ui-pager">
-          <span>Page {{ ledger.current_page }} of {{ ledger.last_page }}</span>
-          <div>
-            <button
-              type="button"
-              class="btn ui-btn-secondary"
-              :disabled="ledger.current_page <= 1"
-              @click="goTo(ledger.current_page - 1)"
-            >
-              Previous
-            </button>
-            <button
-              type="button"
-              class="btn ui-btn-secondary"
-              :disabled="ledger.current_page >= ledger.last_page"
-              @click="goTo(ledger.current_page + 1)"
-            >
-              Next
-            </button>
-          </div>
-        </div>
+        <PaginationBar
+          v-if="ledger"
+          :page="ledger.current_page"
+          :last-page="ledger.last_page"
+          :total="ledger.total"
+          :per-page="ledgerPerPage"
+          noun="entries"
+          @update:page="goTo"
+          @update:per-page="changeSize"
+        />
       </section>
 
       <PaySupplierModal v-if="paying" :supplier="supplier" @close="paying = false" @paid="paid" />

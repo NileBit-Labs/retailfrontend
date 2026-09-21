@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import PaginationBar from '@/components/PaginationBar.vue'
+import { usePerPage } from '@/lib/paging'
 import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
 import { apiErrorMessage, apiFetch } from '@/lib/api'
@@ -9,6 +11,7 @@ const sales = ref<Sale[]>([])
 const page = ref(1)
 const lastPage = ref(1)
 const total = ref(0)
+const perPage = usePerPage('sales')
 const loading = ref(false)
 const error = ref('')
 
@@ -20,7 +23,7 @@ async function load(target = 1) {
   loading.value = true
   error.value = ''
   try {
-    const params = new URLSearchParams({ page: String(target) })
+    const params = new URLSearchParams({ page: String(target), per_page: String(perPage.value) })
     if (status.value) params.set('status', status.value)
     if (from.value) params.set('from', from.value)
     if (to.value) params.set('to', to.value)
@@ -115,17 +118,21 @@ onMounted(() => load())
         </table>
       </div>
 
-      <footer v-if="lastPage > 1" class="pager">
-        <span>{{ total }} sales · page {{ page }} of {{ lastPage }}</span>
-        <div>
-          <button class="btn" :disabled="page <= 1 || loading" @click="load(page - 1)">
-            Previous
-          </button>
-          <button class="btn" :disabled="page >= lastPage || loading" @click="load(page + 1)">
-            Next
-          </button>
-        </div>
-      </footer>
+      <PaginationBar
+        :page="page"
+        :last-page="lastPage"
+        :total="total"
+        :per-page="perPage"
+        :disabled="loading"
+        noun="sales"
+        @update:page="load"
+        @update:per-page="
+          (n) => {
+            perPage = n
+            load(1)
+          }
+        "
+      />
     </div>
   </main>
 </template>
@@ -134,7 +141,7 @@ onMounted(() => load())
 .page {
   flex: 1;
   width: 100%;
-  max-width: 1200px;
+  max-width: 1680px;
   margin: 0 auto;
   padding: 2rem;
   display: flex;

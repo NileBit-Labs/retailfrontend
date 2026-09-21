@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import CustomerFormModal from '@/components/customers/CustomerFormModal.vue'
+import PaginationBar from '@/components/PaginationBar.vue'
+import { useClientPage } from '@/lib/paging'
 import { formatUgx } from '@/lib/format'
 import { useAuthStore } from '@/stores/auth'
 import { useCustomersStore } from '@/stores/customers'
@@ -25,6 +27,9 @@ const visible = computed(() => {
     (c) => !q || c.name.toLowerCase().includes(q) || c.phone?.includes(q),
   )
 })
+
+const { page, perPage, total, lastPage, rows } = useClientPage(visible, 'customers')
+watch(search, () => (page.value = 1))
 
 function onSaved(customer: { id: number }) {
   adding.value = false
@@ -70,7 +75,7 @@ function onSaved(customer: { id: number }) {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="customer in visible" :key="customer.id">
+            <tr v-for="customer in rows" :key="customer.id">
               <td>
                 <RouterLink class="link" :to="`/customers/${customer.id}`">{{
                   customer.name
@@ -89,6 +94,20 @@ function onSaved(customer: { id: number }) {
           </tbody>
         </table>
       </div>
+      <PaginationBar
+        :page="page"
+        :last-page="lastPage"
+        :total="total"
+        :per-page="perPage"
+        noun="customers"
+        @update:page="(n) => (page = n)"
+        @update:per-page="
+          (n) => {
+            perPage = n
+            page = 1
+          }
+        "
+      />
     </div>
 
     <CustomerFormModal
@@ -104,7 +123,7 @@ function onSaved(customer: { id: number }) {
 .page {
   flex: 1;
   width: 100%;
-  max-width: 1000px;
+  max-width: 1680px;
   margin: 0 auto;
   padding: 2rem;
   display: flex;

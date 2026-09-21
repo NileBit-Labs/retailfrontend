@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import PaginationBar from '@/components/PaginationBar.vue'
+import { usePerPage } from '@/lib/paging'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import StockActionModal from '@/components/inventory/StockActionModal.vue'
@@ -27,6 +29,7 @@ const search = ref('')
 const categoryId = ref('')
 const filter = ref<'' | 'low' | 'out'>('')
 const stockPage = ref(1)
+const stockPerPage = usePerPage('inventory-stock')
 
 // ---- History ----
 const movements = ref<Paginated<Movement> | null>(null)
@@ -34,6 +37,7 @@ const movementType = ref('')
 const from = ref('')
 const to = ref('')
 const historyPage = ref(1)
+const historyPerPage = usePerPage('inventory-history')
 const productFilter = ref<{ id: number; name: string } | null>(null)
 
 const loading = ref(false)
@@ -45,7 +49,10 @@ async function loadStock() {
   loading.value = true
   error.value = ''
   try {
-    const params = new URLSearchParams({ page: String(stockPage.value) })
+    const params = new URLSearchParams({
+      page: String(stockPage.value),
+      per_page: String(stockPerPage.value),
+    })
     if (search.value.trim()) params.set('search', search.value.trim())
     if (categoryId.value) params.set('category_id', categoryId.value)
     if (filter.value) params.set('filter', filter.value)
@@ -65,7 +72,10 @@ async function loadHistory() {
   loading.value = true
   error.value = ''
   try {
-    const params = new URLSearchParams({ page: String(historyPage.value) })
+    const params = new URLSearchParams({
+      page: String(historyPage.value),
+      per_page: String(historyPerPage.value),
+    })
     if (productFilter.value) params.set('product_id', String(productFilter.value.id))
     if (movementType.value) params.set('type', movementType.value)
     if (from.value) params.set('from', from.value)
@@ -93,6 +103,16 @@ onUnmounted(() => clearTimeout(timer))
 function refilterStock() {
   stockPage.value = 1
   void loadStock()
+}
+
+function changeStockSize(n: number) {
+  stockPerPage.value = n
+  refilterStock()
+}
+
+function changeHistorySize(n: number) {
+  historyPerPage.value = n
+  refilterHistory()
 }
 
 function refilterHistory() {
@@ -293,30 +313,22 @@ onMounted(async () => {
           </table>
         </div>
 
-        <div v-if="stock && stock.last_page > 1" class="ui-pager">
-          <span
-            >Page {{ stock.current_page }} of {{ stock.last_page }} ·
-            {{ stock.total }} products</span
-          >
-          <div>
-            <button
-              type="button"
-              class="btn ui-btn-secondary"
-              :disabled="stock.current_page <= 1"
-              @click="((stockPage = stock.current_page - 1), loadStock())"
-            >
-              Previous
-            </button>
-            <button
-              type="button"
-              class="btn ui-btn-secondary"
-              :disabled="stock.current_page >= stock.last_page"
-              @click="((stockPage = stock.current_page + 1), loadStock())"
-            >
-              Next
-            </button>
-          </div>
-        </div>
+        <PaginationBar
+          v-if="stock"
+          :page="stock.current_page"
+          :last-page="stock.last_page"
+          :total="stock.total"
+          :per-page="stockPerPage"
+          :disabled="loading"
+          noun="products"
+          @update:page="
+            (n) => {
+              stockPage = n
+              loadStock()
+            }
+          "
+          @update:per-page="changeStockSize"
+        />
       </div>
     </template>
 
@@ -383,27 +395,22 @@ onMounted(async () => {
           </table>
         </div>
 
-        <div v-if="movements && movements.last_page > 1" class="ui-pager">
-          <span>Page {{ movements.current_page }} of {{ movements.last_page }}</span>
-          <div>
-            <button
-              type="button"
-              class="btn ui-btn-secondary"
-              :disabled="movements.current_page <= 1"
-              @click="((historyPage = movements.current_page - 1), loadHistory())"
-            >
-              Previous
-            </button>
-            <button
-              type="button"
-              class="btn ui-btn-secondary"
-              :disabled="movements.current_page >= movements.last_page"
-              @click="((historyPage = movements.current_page + 1), loadHistory())"
-            >
-              Next
-            </button>
-          </div>
-        </div>
+        <PaginationBar
+          v-if="movements"
+          :page="movements.current_page"
+          :last-page="movements.last_page"
+          :total="movements.total"
+          :per-page="historyPerPage"
+          :disabled="loading"
+          noun="movements"
+          @update:page="
+            (n) => {
+              historyPage = n
+              loadHistory()
+            }
+          "
+          @update:per-page="changeHistorySize"
+        />
       </div>
     </template>
 

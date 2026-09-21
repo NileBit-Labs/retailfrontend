@@ -358,7 +358,6 @@ async function share() {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 390px;
   gap: 1.25rem;
-  height: 100dvh;
   padding: 1.25rem;
   min-height: 0;
 }
@@ -795,7 +794,6 @@ async function share() {
 @media (max-width: 900px) {
   .pos {
     grid-template-columns: 1fr;
-    height: calc(100dvh - 53px);
     padding: 0.875rem;
     padding-bottom: 5rem;
   }

@@ -348,7 +348,7 @@ function shown(iso: string): string {
 .dashboard {
   flex: 1;
   padding: 2rem 2rem 3rem;
-  max-width: 1760px;
+  max-width: 1680px;
   margin: 0 auto;
   width: 100%;
   display: flex;
