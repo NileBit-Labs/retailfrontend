@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import PaginationBar from '@/components/PaginationBar.vue'
+import { usePerPage } from '@/lib/paging'
 import { onMounted, onUnmounted, ref, watch } from 'vue'
 import CategoriesModal from '@/components/inventory/CategoriesModal.vue'
 import ImportModal from '@/components/inventory/ImportModal.vue'
@@ -20,6 +22,7 @@ const categoryId = ref('')
 const status = ref<'active' | 'archived' | 'all'>('active')
 const stockFilter = ref<'' | 'low' | 'out'>('')
 const pageNo = ref(1)
+const perPage = usePerPage('products')
 
 const editing = ref<ManagedProduct | null>(null)
 const adding = ref(false)
@@ -30,7 +33,11 @@ async function load() {
   loading.value = true
   error.value = ''
   try {
-    const params = new URLSearchParams({ status: status.value, page: String(pageNo.value) })
+    const params = new URLSearchParams({
+      status: status.value,
+      page: String(pageNo.value),
+      per_page: String(perPage.value),
+    })
     if (search.value.trim()) params.set('search', search.value.trim())
     if (categoryId.value) params.set('category_id', categoryId.value)
     if (stockFilter.value === 'low') params.set('low_stock', '1')
@@ -62,6 +69,11 @@ function refilter() {
 function goTo(n: number) {
   pageNo.value = n
   void load()
+}
+
+function changeSize(n: number) {
+  perPage.value = n
+  refilter()
 }
 
 function toggleStock(value: 'low' | 'out') {
@@ -213,29 +225,17 @@ onMounted(() => {
         </table>
       </div>
 
-      <div v-if="page && page.last_page > 1" class="ui-pager">
-        <span
-          >Page {{ page.current_page }} of {{ page.last_page }} · {{ page.total }} products</span
-        >
-        <div>
-          <button
-            type="button"
-            class="btn ui-btn-secondary"
-            :disabled="page.current_page <= 1"
-            @click="goTo(page.current_page - 1)"
-          >
-            Previous
-          </button>
-          <button
-            type="button"
-            class="btn ui-btn-secondary"
-            :disabled="page.current_page >= page.last_page"
-            @click="goTo(page.current_page + 1)"
-          >
-            Next
-          </button>
-        </div>
-      </div>
+      <PaginationBar
+        v-if="page"
+        :page="page.current_page"
+        :last-page="page.last_page"
+        :total="page.total"
+        :per-page="perPage"
+        :disabled="loading"
+        noun="products"
+        @update:page="goTo"
+        @update:per-page="changeSize"
+      />
     </div>
 
     <ProductFormModal v-if="adding" @close="adding = false" @saved="saved" />

@@ -136,7 +136,7 @@ async function confirmDiscard() {
 .page {
   flex: 1;
   width: 100%;
-  max-width: 760px;
+  max-width: 1680px;
   margin: 0 auto;
   padding: 2rem 1rem;
   display: flex;

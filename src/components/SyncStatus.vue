@@ -37,12 +37,12 @@ const state = computed(() => {
   align-items: center;
   gap: 0.5rem;
   max-width: 100%;
-  padding: 0.25rem 0.625rem;
+  padding: 0.375rem 0.75rem;
   border: 1px solid var(--color-border);
   border-radius: 999px;
   background: var(--color-canvas);
   color: var(--color-ink-soft);
-  font-size: 0.75rem;
+  font-size: 0.8125rem;
   font-weight: 500;
   text-decoration: none;
 }

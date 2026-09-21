@@ -1,5 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
+import PaginationBar from '@/components/PaginationBar.vue'
+import { useClientPage } from '@/lib/paging'
 import { RouterLink } from 'vue-router'
 import RepaymentModal from '@/components/customers/RepaymentModal.vue'
 import { apiErrorMessage, apiFetch } from '@/lib/api'
@@ -12,6 +14,7 @@ const error = ref('')
 const collecting = ref<Customer | null>(null)
 
 const totalOwed = computed(() => debtors.value.reduce((sum, c) => sum + c.balance, 0))
+const { page, perPage, total, lastPage, rows } = useClientPage(debtors, 'credit')
 const overdueCount = computed(() => debtors.value.filter((c) => c.overdue).length)
 
 async function load() {
@@ -74,7 +77,7 @@ onMounted(load)
             </tr>
           </thead>
           <tbody>
-            <tr v-for="customer in debtors" :key="customer.id">
+            <tr v-for="customer in rows" :key="customer.id">
               <td>
                 <RouterLink class="link" :to="`/customers/${customer.id}`">{{
                   customer.name
@@ -93,6 +96,20 @@ onMounted(load)
           </tbody>
         </table>
       </div>
+      <PaginationBar
+        :page="page"
+        :last-page="lastPage"
+        :total="total"
+        :per-page="perPage"
+        noun="customers with balances"
+        @update:page="(n) => (page = n)"
+        @update:per-page="
+          (n) => {
+            perPage = n
+            page = 1
+          }
+        "
+      />
     </div>
 
     <RepaymentModal
@@ -108,7 +125,7 @@ onMounted(load)
 .page {
   flex: 1;
   width: 100%;
-  max-width: 1000px;
+  max-width: 1680px;
   margin: 0 auto;
   padding: 2rem;
   display: flex;

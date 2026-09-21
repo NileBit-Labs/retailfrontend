@@ -1,6 +1,8 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import BaseModal from '@/components/BaseModal.vue'
+import PaginationBar from '@/components/PaginationBar.vue'
+import { useClientPage } from '@/lib/paging'
 import { apiErrorMessage, apiFetch } from '@/lib/api'
 import { formatUgx, localDate } from '@/lib/format'
 
@@ -38,6 +40,9 @@ const form = ref({ category: 'Other', amount: 0, description: '', expense_date: 
 const saving = ref(false)
 const formError = ref('')
 
+const expenseItems = computed(() => list.value?.data ?? [])
+const { page, perPage, total, lastPage, rows } = useClientPage(expenseItems, 'expenses')
+
 const largest = computed(() => Math.max(...(list.value?.by_category.map((c) => c.total) ?? [0]), 1))
 
 async function load() {
@@ -47,6 +52,7 @@ async function load() {
     const params = new URLSearchParams({ from: from.value, to: to.value })
     if (category.value) params.set('category', category.value)
     list.value = await apiFetch<ExpenseList>(`/expenses?${params}`)
+    page.value = 1
   } catch (e) {
     error.value = apiErrorMessage(e)
   } finally {
@@ -166,7 +172,7 @@ onMounted(load)
             </tr>
           </thead>
           <tbody>
-            <tr v-for="expense in list.data" :key="expense.id">
+            <tr v-for="expense in rows" :key="expense.id">
               <td>{{ expense.expense_date }}</td>
               <td>{{ expense.category }}</td>
               <td class="desc">{{ expense.description ?? '—' }}</td>
@@ -179,6 +185,20 @@ onMounted(load)
           </tbody>
         </table>
       </div>
+      <PaginationBar
+        :page="page"
+        :last-page="lastPage"
+        :total="total"
+        :per-page="perPage"
+        noun="expenses"
+        @update:page="(n) => (page = n)"
+        @update:per-page="
+          (n) => {
+            perPage = n
+            page = 1
+          }
+        "
+      />
     </div>
 
     <BaseModal
@@ -235,7 +255,7 @@ onMounted(load)
 .page {
   flex: 1;
   width: 100%;
-  max-width: 1100px;
+  max-width: 1680px;
   margin: 0 auto;
   padding: 2rem;
   display: flex;

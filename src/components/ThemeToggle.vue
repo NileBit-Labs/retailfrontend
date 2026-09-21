@@ -40,13 +40,13 @@ const options: { value: Theme; label: string; title: string }[] = [
 .theme-option {
   display: grid;
   place-items: center;
-  width: 26px;
-  height: 24px;
+  width: 32px;
+  height: 30px;
   border: none;
   border-radius: 4px;
   background: transparent;
   color: var(--color-ink-faint);
-  font-size: 0.8125rem;
+  font-size: 1rem;
   line-height: 1;
   cursor: pointer;
   transition:

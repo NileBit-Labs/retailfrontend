@@ -1,4 +1,6 @@
 <script setup lang="ts">
+import PaginationBar from '@/components/PaginationBar.vue'
+import { usePerPage } from '@/lib/paging'
 import { onMounted, ref } from 'vue'
 import BaseModal from '@/components/BaseModal.vue'
 import { apiErrorMessage, apiFetch } from '@/lib/api'
@@ -12,6 +14,8 @@ const auth = useAuthStore()
 const shifts = ref<Shift[]>([])
 const page = ref(1)
 const lastPage = ref(1)
+const total = ref(0)
+const perPage = usePerPage('shifts')
 const loading = ref(false)
 const error = ref('')
 const detail = ref<Shift | null>(null)
@@ -20,10 +24,13 @@ async function load(target = 1) {
   loading.value = true
   error.value = ''
   try {
-    const result = await apiFetch<Paginated<Shift>>(`/shifts?page=${target}`)
+    const result = await apiFetch<Paginated<Shift>>(
+      `/shifts?page=${target}&per_page=${perPage.value}`,
+    )
     shifts.value = result.data
     page.value = result.current_page
     lastPage.value = result.last_page
+    total.value = result.total
   } catch (e) {
     error.value = apiErrorMessage(e)
   } finally {
@@ -107,17 +114,21 @@ onMounted(() => load())
         </table>
       </div>
 
-      <footer v-if="lastPage > 1" class="pager">
-        <span>Page {{ page }} of {{ lastPage }}</span>
-        <div>
-          <button class="btn" :disabled="page <= 1 || loading" @click="load(page - 1)">
-            Previous
-          </button>
-          <button class="btn" :disabled="page >= lastPage || loading" @click="load(page + 1)">
-            Next
-          </button>
-        </div>
-      </footer>
+      <PaginationBar
+        :page="page"
+        :last-page="lastPage"
+        :total="total"
+        :per-page="perPage"
+        :disabled="loading"
+        noun="shifts"
+        @update:page="load"
+        @update:per-page="
+          (n) => {
+            perPage = n
+            load(1)
+          }
+        "
+      />
     </div>
 
     <BaseModal
@@ -176,7 +187,7 @@ onMounted(() => load())
 .page {
   flex: 1;
   width: 100%;
-  max-width: 1100px;
+  max-width: 1680px;
   margin: 0 auto;
   padding: 2rem;
   display: flex;
