@@ -112,7 +112,16 @@ export const navGroups: NavGroup[] = [
   },
   {
     label: 'Intelligence',
-    items: [{ label: 'Ask Your Shop', to: '/ask', icon: 'ask', owner: 'Backlog' }],
+    items: [
+      {
+        label: 'Ask Your Shop',
+        to: '/ask',
+        icon: 'ask',
+        owner: 'Assistant',
+        ready: true,
+        managerOnly: true,
+      },
+    ],
   },
   {
     label: 'Admin',
