@@ -3,6 +3,11 @@ export interface NavItem {
   to: string
   icon: string
   owner: string
+  ready?: boolean
+  // Hidden from cashiers (the server refuses them regardless).
+  managerOnly?: boolean
+  // Owner only (the server refuses everyone else regardless).
+  ownerOnly?: boolean
 }
 
 export interface NavGroup {
@@ -18,36 +23,91 @@ export const navGroups: NavGroup[] = [
   {
     label: 'Sales',
     items: [
-      { label: 'Sell', to: '/pos', icon: 'sell', owner: 'Elioda — Sales/POS' },
-      { label: 'Sales history', to: '/sales', icon: 'sales', owner: 'Elioda — Sales/POS' },
+      { label: 'Sell', to: '/pos', icon: 'sell', owner: 'Elioda — Sales/POS', ready: true },
+      {
+        label: 'Sales history',
+        to: '/sales',
+        icon: 'sales',
+        owner: 'Elioda — Sales/POS',
+        ready: true,
+      },
+      { label: 'Shifts', to: '/shifts', icon: 'shifts', owner: 'Elioda — Shifts', ready: true },
     ],
   },
   {
     label: 'Catalog',
     items: [
-      { label: 'Products', to: '/products', icon: 'products', owner: 'Collins — Inventory' },
-      { label: 'Inventory', to: '/inventory', icon: 'inventory', owner: 'Collins — Inventory' },
+      {
+        label: 'Products',
+        to: '/products',
+        icon: 'products',
+        owner: 'Collins — Inventory',
+        ready: true,
+        managerOnly: true,
+      },
+      {
+        label: 'Inventory',
+        to: '/inventory',
+        icon: 'inventory',
+        owner: 'Collins — Inventory',
+        ready: true,
+        managerOnly: true,
+      },
     ],
   },
   {
     label: 'Purchasing',
     items: [
-      { label: 'Purchases', to: '/purchases', icon: 'purchases', owner: 'Collins — Purchases' },
-      { label: 'Suppliers', to: '/suppliers', icon: 'suppliers', owner: 'Collins — Purchases' },
+      {
+        label: 'Purchases',
+        to: '/purchases',
+        icon: 'purchases',
+        owner: 'Collins — Purchases',
+        ready: true,
+        managerOnly: true,
+      },
+      {
+        label: 'Suppliers',
+        to: '/suppliers',
+        icon: 'suppliers',
+        owner: 'Collins — Purchases',
+        ready: true,
+        managerOnly: true,
+      },
     ],
   },
   {
     label: 'Customers',
     items: [
-      { label: 'Customers', to: '/customers', icon: 'customers', owner: 'Douglas — Customers' },
-      { label: 'Credit', to: '/credit', icon: 'credit', owner: 'Douglas — Customers' },
+      {
+        label: 'Customers',
+        to: '/customers',
+        icon: 'customers',
+        owner: 'Douglas — Customers',
+        ready: true,
+      },
+      { label: 'Credit', to: '/credit', icon: 'credit', owner: 'Douglas — Customers', ready: true },
     ],
   },
   {
     label: 'Finance',
     items: [
-      { label: 'Expenses', to: '/expenses', icon: 'expenses', owner: 'Collins — Expenses' },
-      { label: 'Reports', to: '/reports', icon: 'reports', owner: 'Douglas — Reports' },
+      {
+        label: 'Expenses',
+        to: '/expenses',
+        icon: 'expenses',
+        owner: 'Elioda — Expenses',
+        ready: true,
+        managerOnly: true,
+      },
+      {
+        label: 'Reports',
+        to: '/reports',
+        icon: 'reports',
+        owner: 'Douglas — Reports',
+        ready: true,
+        managerOnly: true,
+      },
     ],
   },
   {
@@ -57,8 +117,23 @@ export const navGroups: NavGroup[] = [
   {
     label: 'Admin',
     items: [
-      { label: 'Users', to: '/users', icon: 'users', owner: 'Douglas — Users' },
-      { label: 'Settings', to: '/settings', icon: 'settings', owner: 'Foundation' },
+      {
+        label: 'Staff',
+        to: '/users',
+        icon: 'users',
+        owner: 'Douglas — Users',
+        ready: true,
+        managerOnly: true,
+      },
+      {
+        label: 'Audit log',
+        to: '/audit-log',
+        icon: 'audit',
+        owner: 'Douglas — Users',
+        ready: true,
+        ownerOnly: true,
+      },
+      { label: 'Settings', to: '/settings', icon: 'settings', owner: 'Foundation', ready: true },
     ],
   },
 ]

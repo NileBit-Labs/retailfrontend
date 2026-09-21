@@ -118,7 +118,7 @@ async function onSubmit() {
   margin: 0 auto 1rem;
   border-radius: var(--radius-sm);
   background: var(--color-primary);
-  color: white;
+  color: var(--color-on-primary);
   font-weight: 700;
   font-size: 1.125rem;
 }

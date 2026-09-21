@@ -2,6 +2,7 @@
   --color-primary: #0f766e;
   --color-primary-hover: #0b5c56;
   --color-primary-soft: #ecf7f6;
+  --color-on-primary: #ffffff;
 
   --color-ink: #1a1f2b;
   --color-ink-soft: #4b5567;
@@ -13,6 +14,7 @@
   --color-border-strong: #cbd0d8;
 
   --color-danger: #b3261e;
+  --color-on-danger: #ffffff;
   --color-danger-soft: #fdecec;
 
   --radius-sm: 6px;
@@ -29,6 +31,7 @@
     --color-primary: #2dd4bf;
     --color-primary-hover: #5eead4;
     --color-primary-soft: rgba(45, 212, 191, 0.14);
+    --color-on-primary: #04302b;
 
     --color-ink: #f1f5f9;
     --color-ink-soft: #b6bfcc;
@@ -40,6 +43,7 @@
     --color-border-strong: #3a4256;
 
     --color-danger: #f87171;
+    --color-on-danger: #3b0a08;
     --color-danger-soft: rgba(248, 113, 113, 0.14);
 
     --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.2), 0 4px 16px rgba(0, 0, 0, 0.3);
@@ -52,6 +56,7 @@
   --color-primary: #2dd4bf;
   --color-primary-hover: #5eead4;
   --color-primary-soft: rgba(45, 212, 191, 0.14);
+  --color-on-primary: #04302b;
 
   --color-ink: #f1f5f9;
   --color-ink-soft: #b6bfcc;
@@ -63,6 +68,7 @@
   --color-border-strong: #3a4256;
 
   --color-danger: #f87171;
+  --color-on-danger: #3b0a08;
   --color-danger-soft: rgba(248, 113, 113, 0.14);
 
   --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.2), 0 4px 16px rgba(0, 0, 0, 0.3);
@@ -166,6 +172,7 @@ textarea {
   font-weight: 600;
   border-radius: var(--radius-sm);
   border: 1px solid transparent;
+  text-decoration: none;
   cursor: pointer;
   transition: background-color 0.15s;
 }
@@ -177,7 +184,7 @@ textarea {
 
 .btn-primary {
   background: var(--color-primary);
-  color: white;
+  color: var(--color-on-primary);
 }
 
 .btn-primary:hover:not(:disabled) {
@@ -204,4 +211,236 @@ textarea {
 
 .link:hover {
   text-decoration: underline;
+}
+
+/* Shared building blocks for list/management screens (ui- prefix so they can't
+   collide with the older per-screen styles). */
+
+.ui-page {
+  flex: 1;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.ui-head {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.ui-head h1 {
+  margin-top: 0.25rem;
+  font-size: 1.5rem;
+}
+
+.ui-eyebrow {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-primary);
+}
+
+.ui-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.ui-btn-secondary {
+  border-color: var(--color-border-strong);
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+.ui-btn-secondary:hover:not(:disabled) {
+  border-color: var(--color-ink-faint);
+}
+
+.ui-filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem;
+  padding: 1rem 1.25rem;
+}
+
+.ui-filters .field {
+  min-width: 150px;
+}
+
+.ui-filters .grow {
+  flex: 1;
+  min-width: 220px;
+}
+
+.ui-chips {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.ui-chip {
+  min-height: 36px;
+  padding: 0 0.875rem;
+  border: 1px solid var(--color-border);
+  border-radius: 999px;
+  background: var(--color-surface);
+  color: var(--color-ink-soft);
+  font-size: 0.8125rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.ui-chip.active {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--color-on-primary);
+}
+
+.ui-table-card {
+  overflow: hidden;
+}
+
+.ui-table-scroll {
+  overflow-x: auto;
+}
+
+.ui-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.ui-table th {
+  padding: 0.75rem 1.25rem;
+  border-bottom: 1px solid var(--color-border);
+  color: var(--color-ink-faint);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-align: left;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.ui-table td {
+  padding: 0.875rem 1.25rem;
+  border-bottom: 1px solid var(--color-border);
+  white-space: nowrap;
+}
+
+.ui-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.ui-table tbody tr.clickable {
+  cursor: pointer;
+}
+
+.ui-table tbody tr.clickable:hover {
+  background: var(--color-canvas);
+}
+
+.ui-table .num {
+  text-align: right;
+}
+
+.ui-table .muted,
+.ui-muted {
+  color: var(--color-ink-faint);
+}
+
+.ui-table small {
+  display: block;
+  color: var(--color-ink-faint);
+  font-size: 0.75rem;
+}
+
+.ui-badge {
+  display: inline-block;
+  padding: 0.125rem 0.625rem;
+  border-radius: 999px;
+  background: var(--color-canvas);
+  color: var(--color-ink-soft);
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.ui-badge.ok {
+  background: var(--color-primary-soft);
+  color: var(--color-primary);
+}
+
+.ui-badge.warn {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.ui-badge.bad {
+  background: var(--color-danger-soft);
+  color: var(--color-danger);
+}
+
+.ui-state {
+  padding: 3rem 1rem;
+  text-align: center;
+  color: var(--color-ink-faint);
+}
+
+.ui-pager {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.875rem 1.25rem;
+  border-top: 1px solid var(--color-border);
+  color: var(--color-ink-faint);
+  font-size: 0.8125rem;
+}
+
+.ui-pager div {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.field-error {
+  color: var(--color-danger);
+  font-size: 0.75rem;
+}
+
+.field .hint {
+  color: var(--color-ink-faint);
+  font-size: 0.75rem;
+}
+
+@media (max-width: 860px) {
+  .ui-page {
+    padding: 1.25rem 1rem;
+  }
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+
+  .receipt-print,
+  .receipt-print * {
+    visibility: visible;
+  }
+
+  .receipt-print {
+    position: fixed;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
 }

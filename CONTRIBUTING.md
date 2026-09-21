@@ -22,11 +22,29 @@ Run `npm run build` before opening a PR — it must pass (type-check + build).
 
 | Person | Track |
 | --- | --- |
-| Elioda Muhangi (CTO) | Foundation (login/auth, API client), POS/Sales screens, offline sync UX — also reviews/merges every PR |
-| Collins Shema (COO) | Products, Inventory, Suppliers, Purchases, Expenses screens |
-| Douglas Bagambe (CEO) | Customers/Credit, Users/Staff, Settings, Dashboard, Reports screens |
+| Elioda Muhangi (CTO) | Foundation (login/auth, API client), Sales/POS, offline sync, Customers & Credit, Expenses, Refunds & Shifts screens |
+| Collins Shema (COO) | Products, Inventory, Suppliers, Purchases screens |
+| Douglas Bagambe (CEO) | Users/Staff, Settings, Dashboard, Reports screens |
 
 Stick to your own module's views/components/stores unless coordinating a shared change (e.g. the Pinia `auth`/`shop` stores, shared layout/nav) — flag those in a PR description or ask before touching another track's files.
+
+## Patterns to follow
+
+- **Talk to the API only through `apiFetch`** (`src/lib/api.ts`). It adds the token and `X-Shop-Id`, times out after 15s, and turns failures into `ApiError`; use `apiErrorMessage(e)` to show a readable message and `isNetworkFailure(e)` to tell "the server said no" from "couldn't reach the server".
+- **Money is an integer number of UGX** everywhere; format it with `formatUgx`. Totals you show are for display — the server recomputes and is the authority.
+- **Writes that matter must survive a bad connection.** Give the action one idempotency key for its whole life and reuse it on retry (see the cart's checkout). Sales already queue offline; if your module adds a write that shops will do without internet, route it through the same outbox/sync path rather than inventing another.
+- **Follow the design tokens** in `src/assets/base.css` (`--color-*`, `--radius-*`, `.card`, `.btn`, `.field`) so light and dark mode both work. Don't hard-code colours; use `--color-on-primary` for text on primary backgrounds.
+- **Add your screen to `src/router/nav.ts`** with `ready: true` and a real route in `src/router/index.ts`; use `managerOnly: true` for screens cashiers shouldn't see (the server still enforces it).
+- **Test in a browser**, on a phone-sized viewport too. Type-checking and a build don't tell you the till is usable.
+
+## Working offline (the installed app)
+
+The app can be installed from the browser and opens with no connection. A service worker, written to `dist/sw.js` by the `appShell` plugin in `vite.config.ts`, saves the app's own files; the API is never cached there (sales and the catalogue are kept by the app itself in IndexedDB).
+
+- It only runs in a production build, so `npm run dev` is never affected. To try it: `npm run build && npx vite preview`, open the preview address, then turn the network off in DevTools and reload.
+- Nothing to maintain by hand: every build lists its own files and gets a new version. A new version waits until the person taps **Reload** on the banner, so nobody is reloaded in the middle of a sale.
+- The signed-in account (name and roles) is kept on the device so a reload while offline still shows the right menu. The server still decides what anyone may do.
+- When you add a screen that loads data, catch the failure and show a message. Offline is a normal state here, not an error to crash on.
 
 ## Branching & PRs
 

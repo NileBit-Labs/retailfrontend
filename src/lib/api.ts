@@ -1,4 +1,20 @@
+import { ref } from 'vue'
+
 const BASE_URL = import.meta.env.VITE_API_URL as string | undefined
+
+// A request that hangs on a weak mobile connection must fail instead of
+// freezing the till, so it can fall back to saving the sale on the device.
+const REQUEST_TIMEOUT_MS = 15000
+
+// false once a request fails to reach the server at all; true as soon as any
+// response (even an error one) comes back. More honest than navigator.onLine,
+// which only knows whether there is a network, not whether the API is reachable.
+export const apiReachable = ref(true)
+
+// True when the request never got an answer (offline, DNS, timeout, server down).
+export function isNetworkFailure(e: unknown): boolean {
+  return !(e instanceof ApiError) || e.status >= 502
+}
 
 if (!BASE_URL) {
   throw new Error(
@@ -41,11 +57,25 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
     (JSON.parse(localStorage.getItem('current_shop') ?? 'null')?.id as number | undefined)
   if (shopId) headers['X-Shop-Id'] = String(shopId)
 
-  const response = await fetch(`${BASE_URL}${path}`, {
-    method: options.method ?? 'GET',
-    headers,
-    body: options.body ? JSON.stringify(options.body) : undefined,
-  })
+  const controller = new AbortController()
+  const timer = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS)
+
+  let response: Response
+  try {
+    response = await fetch(`${BASE_URL}${path}`, {
+      method: options.method ?? 'GET',
+      headers,
+      body: options.body ? JSON.stringify(options.body) : undefined,
+      signal: controller.signal,
+    })
+  } catch (e) {
+    apiReachable.value = false
+    throw e
+  } finally {
+    clearTimeout(timer)
+  }
+
+  apiReachable.value = true
 
   const contentType = response.headers.get('content-type') ?? ''
   const data = contentType.includes('application/json') ? await response.json() : null
@@ -55,4 +85,25 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
   }
 
   return data as T
+}
+
+// Laravel validation failures carry a generic top-level message ("... and 2
+// more errors"); the first field error is the one worth showing a cashier.
+export function apiErrorMessage(e: unknown): string {
+  if (e instanceof ApiError) {
+    const errors = (e.body as { errors?: Record<string, string[]> } | null)?.errors
+    const first = errors ? Object.values(errors)[0]?.[0] : undefined
+    return first ?? e.message
+  }
+  return 'Something went wrong. Please try again.'
+}
+
+// Laravel's per-field validation messages, so a form can show each one under
+// the field it belongs to. Nested names like "units.0.unit_name" are kept as-is.
+export function fieldErrors(e: unknown): Record<string, string> {
+  if (!(e instanceof ApiError)) return {}
+  const errors = (e.body as { errors?: Record<string, string[]> } | null)?.errors ?? {}
+  return Object.fromEntries(
+    Object.entries(errors).map(([key, messages]) => [key, messages[0] ?? '']),
+  )
 }
