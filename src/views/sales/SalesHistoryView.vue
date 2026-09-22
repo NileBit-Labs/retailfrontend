@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import PaginationBar from '@/components/PaginationBar.vue'
+import ResponsiveDataView from '@/components/ResponsiveDataView.vue'
 import { usePerPage } from '@/lib/paging'
 import { onMounted, ref } from 'vue'
 import { RouterLink } from 'vue-router'
@@ -85,8 +86,10 @@ onMounted(() => load())
       <p v-if="loading && !sales.length" class="state">Loading sales…</p>
       <p v-else-if="!sales.length" class="state">No sales found.</p>
 
-      <div v-else class="table-scroll">
-        <table>
+      <ResponsiveDataView v-else>
+        <template #table>
+          <div class="table-scroll">
+            <table>
           <thead>
             <tr>
               <th>Receipt</th>
@@ -115,8 +118,30 @@ onMounted(() => load())
               </td>
             </tr>
           </tbody>
-        </table>
-      </div>
+            </table>
+          </div>
+        </template>
+        <template #mobile>
+          <li v-for="sale in sales" :key="sale.id" class="data-row">
+            <div class="data-row-main">
+              <RouterLink class="data-row-title link" :to="`/sales/${sale.id}`">
+                {{ sale.sale_number }}
+              </RouterLink>
+              <span class="data-row-value">{{ formatUgx(sale.total) }}</span>
+            </div>
+            <div class="data-row-meta">
+              <span>{{ formatDateTime(sale.created_at) }}</span>
+              <span>{{ sale.cashier?.name ?? '—' }}</span>
+              <span>{{ sale.items_count }} item{{ sale.items_count === 1 ? '' : 's' }}</span>
+            </div>
+            <div class="data-row-footer">
+              <span class="data-row-meta">{{ methods(sale) }}</span>
+              <span class="badge" :class="sale.status">{{ sale.status }}</span>
+            </div>
+            <RouterLink class="data-row-action" :to="`/sales/${sale.id}`">View sale</RouterLink>
+          </li>
+        </template>
+      </ResponsiveDataView>
 
       <PaginationBar
         :page="page"
@@ -282,6 +307,28 @@ tbody tr:hover {
 @media (max-width: 860px) {
   .page {
     padding: 1.25rem 1rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .page-head {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .page-head .btn {
+    width: 100%;
+    min-height: 44px;
+    text-align: center;
+  }
+
+  .filters {
+    padding: 1rem;
+  }
+
+  .filters .field {
+    width: 100%;
+    min-width: 0;
   }
 }
 </style>

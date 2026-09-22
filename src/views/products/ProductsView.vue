@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import PaginationBar from '@/components/PaginationBar.vue'
+import ResponsiveDataView from '@/components/ResponsiveDataView.vue'
 import { usePerPage } from '@/lib/paging'
 import { onMounted, onUnmounted, ref, watch } from 'vue'
 import CategoriesModal from '@/components/inventory/CategoriesModal.vue'
@@ -176,8 +177,10 @@ onMounted(() => {
         </p>
       </div>
 
-      <div v-else-if="page" class="ui-table-scroll">
-        <table class="ui-table">
+      <ResponsiveDataView v-else-if="page">
+        <template #table>
+          <div class="ui-table-scroll">
+            <table class="ui-table">
           <thead>
             <tr>
               <th>Product</th>
@@ -190,16 +193,11 @@ onMounted(() => {
             </tr>
           </thead>
           <tbody>
-            <tr
-              v-for="product in page.data"
-              :key="product.id"
-              class="clickable"
-              tabindex="0"
-              @click="editing = product"
-              @keydown.enter="editing = product"
-            >
+            <tr v-for="product in page.data" :key="product.id">
               <td>
-                {{ product.name }}
+                <button type="button" class="table-text-action" @click="editing = product">
+                  {{ product.name }}
+                </button>
                 <small v-if="product.sku || product.barcode">
                   {{ [product.sku, product.barcode].filter(Boolean).join(' · ') }}
                 </small>
@@ -222,8 +220,32 @@ onMounted(() => {
               </td>
             </tr>
           </tbody>
-        </table>
-      </div>
+            </table>
+          </div>
+        </template>
+        <template #mobile>
+          <li v-for="product in page.data" :key="product.id" class="data-row">
+            <div class="data-row-main">
+              <span class="data-row-title">{{ product.name }}</span>
+              <span class="data-row-value">{{ formatUgx(product.selling_price) }}</span>
+            </div>
+            <p v-if="product.sku || product.barcode" class="data-row-meta">
+              {{ [product.sku, product.barcode].filter(Boolean).join(' · ') }}
+            </p>
+            <div class="data-row-footer">
+              <span class="data-row-meta">
+                {{ formatQuantity(product.stock) }} {{ product.base_unit }}
+                <span v-if="product.category">· {{ product.category }}</span>
+              </span>
+              <span v-if="product.status === 'archived'" class="ui-badge">Archived</span>
+              <span v-else-if="product.is_out" class="ui-badge bad">Out of stock</span>
+              <span v-else-if="product.is_low" class="ui-badge warn">Low stock</span>
+              <span v-else class="ui-badge ok">In stock</span>
+            </div>
+            <button type="button" class="data-row-action" @click="editing = product">Edit product</button>
+          </li>
+        </template>
+      </ResponsiveDataView>
 
       <PaginationBar
         v-if="page"

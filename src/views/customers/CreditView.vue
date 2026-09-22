@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue'
 import PaginationBar from '@/components/PaginationBar.vue'
+import ResponsiveDataView from '@/components/ResponsiveDataView.vue'
 import { useClientPage } from '@/lib/paging'
 import { RouterLink } from 'vue-router'
 import RepaymentModal from '@/components/customers/RepaymentModal.vue'
@@ -65,8 +66,10 @@ onMounted(load)
       <p v-if="loading && !debtors.length" class="state">Loading…</p>
       <p v-else-if="!debtors.length" class="state">Nobody owes you anything. 🎉</p>
 
-      <div v-else class="table-scroll">
-        <table>
+      <ResponsiveDataView v-else>
+        <template #table>
+          <div class="table-scroll">
+            <table>
           <thead>
             <tr>
               <th>Customer</th>
@@ -94,8 +97,29 @@ onMounted(load)
               </td>
             </tr>
           </tbody>
-        </table>
-      </div>
+            </table>
+          </div>
+        </template>
+        <template #mobile>
+          <li v-for="customer in rows" :key="customer.id" class="data-row">
+            <div class="data-row-main">
+              <RouterLink class="data-row-title link" :to="`/customers/${customer.id}`">
+                {{ customer.name }}
+              </RouterLink>
+              <span class="data-row-value owes">{{ formatUgx(customer.balance) }}</span>
+            </div>
+            <div class="data-row-meta">
+              <span>{{ customer.phone ?? 'No phone number' }}</span>
+              <span>Pay by {{ customer.oldest_due_date ?? '—' }}</span>
+            </div>
+            <div class="data-row-footer">
+              <span v-if="customer.overdue" class="badge">Overdue</span>
+              <RouterLink class="data-row-action" :to="`/customers/${customer.id}`">View ledger</RouterLink>
+              <button type="button" class="data-row-action" @click="collecting = customer">Collect payment</button>
+            </div>
+          </li>
+        </template>
+      </ResponsiveDataView>
       <PaginationBar
         :page="page"
         :last-page="lastPage"
@@ -243,6 +267,12 @@ tbody tr:last-child td {
 
   .stats {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .value {
+    overflow-wrap: anywhere;
   }
 }
 </style>

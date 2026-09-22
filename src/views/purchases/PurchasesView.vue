@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import PaginationBar from '@/components/PaginationBar.vue'
+import ResponsiveDataView from '@/components/ResponsiveDataView.vue'
 import { usePerPage } from '@/lib/paging'
 import { onMounted, onUnmounted, ref, watch } from 'vue'
-import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { RouterLink, useRoute } from 'vue-router'
 import { apiErrorMessage, apiFetch } from '@/lib/api'
 import { formatUgx } from '@/lib/format'
 import type { Paginated } from '@/types/inventory'
@@ -14,7 +15,6 @@ import {
 } from '@/types/purchasing'
 
 const route = useRoute()
-const router = useRouter()
 
 const page = ref<Paginated<PurchaseRow> | null>(null)
 const suppliers = ref<Supplier[]>([])
@@ -141,8 +141,10 @@ onMounted(async () => {
         </p>
       </div>
 
-      <div v-else-if="page" class="ui-table-scroll">
-        <table class="ui-table">
+      <ResponsiveDataView v-else-if="page">
+        <template #table>
+          <div class="ui-table-scroll">
+            <table class="ui-table">
           <thead>
             <tr>
               <th>Purchase</th>
@@ -154,16 +156,11 @@ onMounted(async () => {
             </tr>
           </thead>
           <tbody>
-            <tr
-              v-for="purchase in page.data"
-              :key="purchase.id"
-              class="clickable"
-              tabindex="0"
-              @click="router.push(`/purchases/${purchase.id}`)"
-              @keydown.enter="router.push(`/purchases/${purchase.id}`)"
-            >
+            <tr v-for="purchase in page.data" :key="purchase.id">
               <td>
-                {{ purchase.purchase_number }}
+                <RouterLink class="link" :to="`/purchases/${purchase.id}`">
+                  {{ purchase.purchase_number }}
+                </RouterLink>
                 <small>
                   {{ purchase.items_count }} item{{ purchase.items_count === 1 ? '' : 's' }}
                   <template v-if="purchase.reference"> · {{ purchase.reference }}</template>
@@ -182,8 +179,34 @@ onMounted(async () => {
               </td>
             </tr>
           </tbody>
-        </table>
-      </div>
+            </table>
+          </div>
+        </template>
+        <template #mobile>
+          <li v-for="purchase in page.data" :key="purchase.id" class="data-row">
+            <div class="data-row-main">
+              <RouterLink class="data-row-title link" :to="`/purchases/${purchase.id}`">
+                {{ purchase.purchase_number }}
+              </RouterLink>
+              <span class="data-row-value">{{ formatUgx(purchase.total) }}</span>
+            </div>
+            <div class="data-row-meta">
+              <span>{{ purchase.supplier.name }}</span>
+              <span>{{ purchase.purchase_date }}</span>
+              <span>{{ purchase.items_count }} item{{ purchase.items_count === 1 ? '' : 's' }}</span>
+            </div>
+            <div class="data-row-footer">
+              <span class="data-row-meta">
+                {{ purchase.owed > 0 ? `Outstanding ${formatUgx(purchase.owed)}` : 'Paid in full' }}
+              </span>
+              <span class="ui-badge" :class="PAYMENT_STATUS_TONE[purchase.payment_status]">
+                {{ PAYMENT_STATUS_LABELS[purchase.payment_status] }}
+              </span>
+            </div>
+            <RouterLink class="data-row-action" :to="`/purchases/${purchase.id}`">View purchase</RouterLink>
+          </li>
+        </template>
+      </ResponsiveDataView>
 
       <PaginationBar
         v-if="page"

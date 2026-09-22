@@ -3,6 +3,7 @@ import { computed, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRouter } from 'vue-router'
 import CustomerFormModal from '@/components/customers/CustomerFormModal.vue'
 import PaginationBar from '@/components/PaginationBar.vue'
+import ResponsiveDataView from '@/components/ResponsiveDataView.vue'
 import { useClientPage } from '@/lib/paging'
 import { formatUgx } from '@/lib/format'
 import { useAuthStore } from '@/stores/auth'
@@ -64,8 +65,10 @@ function onSaved(customer: { id: number }) {
       </p>
       <p v-else-if="!visible.length" class="state">No customers match “{{ search }}”.</p>
 
-      <div v-else class="table-scroll">
-        <table>
+      <ResponsiveDataView v-else>
+        <template #table>
+          <div class="table-scroll">
+            <table>
           <thead>
             <tr>
               <th>Name</th>
@@ -92,8 +95,32 @@ function onSaved(customer: { id: number }) {
               </td>
             </tr>
           </tbody>
-        </table>
-      </div>
+            </table>
+          </div>
+        </template>
+        <template #mobile>
+          <li v-for="customer in rows" :key="customer.id" class="data-row">
+            <div class="data-row-main">
+              <RouterLink class="data-row-title link" :to="`/customers/${customer.id}`">
+                {{ customer.name }}
+              </RouterLink>
+              <span v-if="customer.balance > 0" class="data-row-value owes">
+                {{ formatUgx(customer.balance) }}
+              </span>
+            </div>
+            <div class="data-row-meta">
+              <span>{{ customer.phone ?? 'No phone number' }}</span>
+              <span v-if="customer.balance <= 0">No outstanding balance</span>
+            </div>
+            <div class="data-row-footer">
+              <span v-if="customer.overdue" class="badge overdue">Overdue</span>
+              <span v-else-if="customer.balance > 0" class="badge owing">Owes</span>
+              <span v-else class="badge clear">Clear</span>
+              <RouterLink class="data-row-action" :to="`/customers/${customer.id}`">View customer</RouterLink>
+            </div>
+          </li>
+        </template>
+      </ResponsiveDataView>
       <PaginationBar
         :page="page"
         :last-page="lastPage"
@@ -246,6 +273,18 @@ tbody tr:hover {
 @media (max-width: 860px) {
   .page {
     padding: 1.25rem 1rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .page-head {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .page-head .btn {
+    width: 100%;
+    min-height: 44px;
   }
 }
 </style>

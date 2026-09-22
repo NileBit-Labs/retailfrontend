@@ -2,6 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import BaseModal from '@/components/BaseModal.vue'
 import PaginationBar from '@/components/PaginationBar.vue'
+import ResponsiveDataView from '@/components/ResponsiveDataView.vue'
 import { useClientPage } from '@/lib/paging'
 import { apiErrorMessage, apiFetch } from '@/lib/api'
 import { formatUgx, localDate } from '@/lib/format'
@@ -159,8 +160,10 @@ onMounted(load)
       <p v-if="loading && !list" class="state">Loading…</p>
       <p v-else-if="list && !list.data.length" class="state">No expenses in this period.</p>
 
-      <div v-else-if="list" class="table-scroll">
-        <table>
+      <ResponsiveDataView v-else-if="list">
+        <template #table>
+          <div class="table-scroll">
+            <table>
           <thead>
             <tr>
               <th>Date</th>
@@ -183,8 +186,24 @@ onMounted(load)
               </td>
             </tr>
           </tbody>
-        </table>
-      </div>
+            </table>
+          </div>
+        </template>
+        <template #mobile>
+          <li v-for="expense in rows" :key="expense.id" class="data-row">
+            <div class="data-row-main">
+              <span class="data-row-title">{{ expense.category }}</span>
+              <span class="data-row-value">{{ formatUgx(expense.amount) }}</span>
+            </div>
+            <div class="data-row-meta">
+              <span>{{ expense.expense_date }}</span>
+              <span>{{ expense.recorder?.name ?? '—' }}</span>
+            </div>
+            <p v-if="expense.description" class="data-row-meta">{{ expense.description }}</p>
+            <button type="button" class="data-row-action" @click="openEdit(expense)">Edit expense</button>
+          </li>
+        </template>
+      </ResponsiveDataView>
       <PaginationBar
         :page="page"
         :last-page="lastPage"
@@ -448,6 +467,36 @@ tbody tr:last-child td {
 
   .summary {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .page-head {
+    align-items: stretch;
+    flex-wrap: wrap;
+  }
+
+  .page-head .btn {
+    width: 100%;
+    min-height: 44px;
+  }
+
+  .filters {
+    padding: 1rem;
+  }
+
+  .filters .field {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .breakdown li {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .breakdown .bar {
+    grid-column: 1 / -1;
+    grid-row: 2;
   }
 }
 </style>

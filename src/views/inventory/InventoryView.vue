@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import PaginationBar from '@/components/PaginationBar.vue'
+import ResponsiveDataView from '@/components/ResponsiveDataView.vue'
 import { usePerPage } from '@/lib/paging'
 import { computed, onMounted, onUnmounted, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
@@ -268,8 +269,10 @@ onMounted(async () => {
         <p v-if="loading && !stock" class="ui-state">Loading…</p>
         <p v-else-if="stock && !stock.data.length" class="ui-state">No products match.</p>
 
-        <div v-else-if="stock" class="ui-table-scroll">
-          <table class="ui-table">
+        <ResponsiveDataView v-else-if="stock">
+          <template #table>
+            <div class="ui-table-scroll">
+              <table class="ui-table">
             <thead>
               <tr>
                 <th>Product</th>
@@ -310,8 +313,35 @@ onMounted(async () => {
                 </td>
               </tr>
             </tbody>
-          </table>
-        </div>
+              </table>
+            </div>
+          </template>
+          <template #mobile>
+            <li v-for="product in stock.data" :key="product.id" class="data-row">
+              <div class="data-row-main">
+                <span class="data-row-title">{{ product.name }}</span>
+                <span class="data-row-value">
+                  {{ formatQuantity(product.stock) }} {{ product.base_unit }}
+                </span>
+              </div>
+              <div class="data-row-meta">
+                <span>{{ product.category ?? 'Uncategorised' }}</span>
+                <span>
+                  Reorder at
+                  {{ product.low_stock_threshold ? formatQuantity(product.low_stock_threshold) : '—' }}
+                </span>
+                <span>{{ formatUgx(product.stock_value) }}</span>
+              </div>
+              <div class="data-row-footer">
+                <span v-if="product.is_out" class="ui-badge bad">Out of stock</span>
+                <span v-else-if="product.is_low" class="ui-badge warn">Low stock</span>
+                <span v-else class="ui-badge ok">In stock</span>
+                <button type="button" class="data-row-action" @click="acting = product">Update stock</button>
+                <button type="button" class="data-row-action" @click="showHistoryFor(product)">History</button>
+              </div>
+            </li>
+          </template>
+        </ResponsiveDataView>
 
         <PaginationBar
           v-if="stock"
@@ -365,8 +395,10 @@ onMounted(async () => {
           No stock movements match.
         </p>
 
-        <div v-else-if="movements" class="ui-table-scroll">
-          <table class="ui-table">
+        <ResponsiveDataView v-else-if="movements">
+          <template #table>
+            <div class="ui-table-scroll">
+              <table class="ui-table">
             <thead>
               <tr>
                 <th>When</th>
@@ -392,8 +424,29 @@ onMounted(async () => {
                 <td>{{ m.performed_by }}</td>
               </tr>
             </tbody>
-          </table>
-        </div>
+              </table>
+            </div>
+          </template>
+          <template #mobile>
+            <li v-for="m in movements.data" :key="m.id" class="data-row">
+              <div class="data-row-main">
+                <span class="data-row-title">{{ m.product_name }}</span>
+                <span class="data-row-value" :class="m.quantity_delta < 0 ? 'out' : 'in'">
+                  {{ signed(m.quantity_delta) }} {{ m.unit }}
+                </span>
+              </div>
+              <div class="data-row-meta">
+                <span>{{ formatDateTime(m.created_at) }}</span>
+                <span>{{ MOVEMENT_LABELS[m.type] ?? m.type }}</span>
+                <span v-if="m.reference">{{ referenceText(m) }}</span>
+              </div>
+              <div class="data-row-footer">
+                <span class="data-row-meta">{{ m.reason ?? 'No note' }}</span>
+                <span class="data-row-meta">{{ m.performed_by }}</span>
+              </div>
+            </li>
+          </template>
+        </ResponsiveDataView>
 
         <PaginationBar
           v-if="movements"
@@ -533,6 +586,26 @@ onMounted(async () => {
 @media (max-width: 860px) {
   .cards {
     grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 480px) {
+  .cards {
+    grid-template-columns: 1fr;
+  }
+
+  .value {
+    overflow-wrap: anywhere;
+  }
+
+  .tabs {
+    width: 100%;
+  }
+
+  .tabs button {
+    flex: 1;
+    min-width: 0;
+    padding: 0 0.625rem;
   }
 }
 </style>

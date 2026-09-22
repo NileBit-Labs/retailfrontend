@@ -1,8 +1,9 @@
 <script setup lang="ts">
 import PaginationBar from '@/components/PaginationBar.vue'
+import ResponsiveDataView from '@/components/ResponsiveDataView.vue'
 import { usePerPage } from '@/lib/paging'
 import { onMounted, onUnmounted, ref, watch } from 'vue'
-import { useRouter } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 import SupplierFormModal from '@/components/purchasing/SupplierFormModal.vue'
 import { apiErrorMessage, apiFetch } from '@/lib/api'
 import { formatUgx } from '@/lib/format'
@@ -141,8 +142,10 @@ onMounted(load)
         </p>
       </div>
 
-      <div v-else-if="page" class="ui-table-scroll">
-        <table class="ui-table">
+      <ResponsiveDataView v-else-if="page">
+        <template #table>
+          <div class="ui-table-scroll">
+            <table class="ui-table">
           <thead>
             <tr>
               <th>Supplier</th>
@@ -152,15 +155,8 @@ onMounted(load)
             </tr>
           </thead>
           <tbody>
-            <tr
-              v-for="supplier in page.data"
-              :key="supplier.id"
-              class="clickable"
-              tabindex="0"
-              @click="router.push(`/suppliers/${supplier.id}`)"
-              @keydown.enter="router.push(`/suppliers/${supplier.id}`)"
-            >
-              <td>{{ supplier.name }}</td>
+            <tr v-for="supplier in page.data" :key="supplier.id">
+              <td><RouterLink class="link" :to="`/suppliers/${supplier.id}`">{{ supplier.name }}</RouterLink></td>
               <td :class="{ muted: !supplier.phone }">{{ supplier.phone ?? '—' }}</td>
               <td class="num" :class="{ owes: supplier.balance > 0 }">
                 {{ supplier.balance > 0 ? formatUgx(supplier.balance) : '—' }}
@@ -172,8 +168,32 @@ onMounted(load)
               </td>
             </tr>
           </tbody>
-        </table>
-      </div>
+            </table>
+          </div>
+        </template>
+        <template #mobile>
+          <li v-for="supplier in page.data" :key="supplier.id" class="data-row">
+            <div class="data-row-main">
+              <RouterLink class="data-row-title link" :to="`/suppliers/${supplier.id}`">
+                {{ supplier.name }}
+              </RouterLink>
+              <span v-if="supplier.balance > 0" class="data-row-value owes">
+                {{ formatUgx(supplier.balance) }}
+              </span>
+            </div>
+            <div class="data-row-meta">
+              <span>{{ supplier.phone ?? 'No phone number' }}</span>
+              <span v-if="supplier.balance <= 0">No outstanding balance</span>
+            </div>
+            <div class="data-row-footer">
+              <span class="ui-badge" :class="{ ok: supplier.is_active }">
+                {{ supplier.is_active ? 'Active' : 'Inactive' }}
+              </span>
+              <RouterLink class="data-row-action" :to="`/suppliers/${supplier.id}`">View supplier</RouterLink>
+            </div>
+          </li>
+        </template>
+      </ResponsiveDataView>
 
       <PaginationBar
         v-if="page"
