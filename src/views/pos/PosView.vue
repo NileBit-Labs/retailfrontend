@@ -87,6 +87,8 @@ function onDrawerKeydown(event: KeyboardEvent) {
   const first = focusable[0]
   const last = focusable[focusable.length - 1]
 
+  if (!first || !last) return
+
   if (event.shiftKey && document.activeElement === first) {
     event.preventDefault()
     last.focus()
@@ -296,7 +298,7 @@ async function share() {
       :class="{ open: cartOpen }"
       :role="isMobileDrawer ? 'dialog' : undefined"
       :aria-modal="isMobileDrawer && cartOpen ? 'true' : undefined"
-      :aria-hidden="isMobileDrawer ? String(!cartOpen) : undefined"
+      :aria-hidden="isMobileDrawer ? !cartOpen : undefined"
       :aria-labelledby="isMobileDrawer ? 'pos-cart-title' : undefined"
       :tabindex="isMobileDrawer ? -1 : undefined"
       aria-label="Cart"
