@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useAuthStore, ApiError } from '@/stores/auth'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import { publicRegistrationEnabled } from '@/lib/beta'
+import brandLockupUrl from '@/assets/brand/nilebit-pos-for-retail.svg'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -34,9 +35,9 @@ async function onSubmit() {
     </div>
 
     <div class="auth-card card">
-      <div class="brand-mark">N</div>
-      <h1>Log in to NileBit POS</h1>
-      <p class="subtitle">NileBit POS for Retail</p>
+      <img class="brand-lockup" :src="brandLockupUrl" alt="NileBit POS for Retail" />
+      <h1>Log in</h1>
+      <p class="subtitle">Run your retail shop from anywhere.</p>
 
       <form class="auth-form" @submit.prevent="onSubmit">
         <p v-if="error" class="alert-danger">{{ error }}</p>
@@ -93,17 +94,11 @@ async function onSubmit() {
   text-align: center;
 }
 
-.brand-mark {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  margin: 0 auto 1rem;
-  border-radius: var(--radius-sm);
-  background: var(--color-primary);
-  color: var(--color-on-primary);
-  font-weight: 700;
-  font-size: 1.125rem;
+.brand-lockup {
+  display: block;
+  width: min(100%, 252px);
+  height: auto;
+  margin: 0 auto 1.125rem;
 }
 
 h1 {

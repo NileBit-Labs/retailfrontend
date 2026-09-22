@@ -9,6 +9,7 @@ import SyncStatus from '@/components/SyncStatus.vue'
 import ThemeToggle from '@/components/ThemeToggle.vue'
 import { useSyncStore } from '@/stores/sync'
 import { applyUpdate, updateReady } from '@/lib/pwa'
+import brandIconUrl from '@/assets/brand/nilebit-pos-icon.svg'
 
 const auth = useAuthStore()
 const shopStore = useShopStore()
@@ -79,8 +80,11 @@ async function onLogout() {
 
     <aside class="sidebar" :class="{ open: sidebarOpen }" aria-label="Main menu">
       <RouterLink to="/" class="brand" @click="sidebarOpen = false">
-        <span class="brand-mark">N</span>
-        <span class="brand-name">NileBit <span class="brand-name-accent">POS</span></span>
+        <img class="brand-icon" :src="brandIconUrl" alt="" />
+        <span class="brand-copy">
+          <span class="brand-name">NileBit <span class="brand-name-accent">POS</span></span>
+          <span class="brand-edition">For Retail</span>
+        </span>
       </RouterLink>
 
       <nav class="nav">
@@ -212,17 +216,16 @@ async function onLogout() {
   flex-shrink: 0;
 }
 
-.brand-mark {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: var(--radius-sm);
-  background: var(--color-primary);
-  color: var(--color-on-primary);
-  font-weight: 700;
-  font-size: 1.0625rem;
+.brand-icon {
+  width: 30px;
+  height: 30px;
   flex-shrink: 0;
+}
+
+.brand-copy {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
 }
 
 .brand-name {
@@ -235,6 +238,16 @@ async function onLogout() {
 .brand-name-accent {
   color: var(--color-primary);
   font-weight: 500;
+}
+
+.brand-edition {
+  margin-top: 0.125rem;
+  color: var(--color-ink-faint);
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  line-height: 1;
+  text-transform: uppercase;
 }
 
 .nav {
