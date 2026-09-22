@@ -2,7 +2,7 @@
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore, ApiError } from '@/stores/auth'
-import ThemeToggle from '@/components/ThemeToggle.vue'
+import AuthShell from '@/components/auth/AuthShell.vue'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -34,15 +34,7 @@ async function onSubmit() {
 </script>
 
 <template>
-  <main class="auth-page">
-    <div class="theme-toggle-corner">
-      <ThemeToggle />
-    </div>
-
-    <div class="auth-card card">
-      <div class="brand-mark">N</div>
-      <h1>Create your account</h1>
-      <p class="subtitle">Set up your retail business on NileBit POS.</p>
+  <AuthShell title="Create your account" subtitle="Set up your retail business on NileBit POS.">
 
       <form class="auth-form" @submit.prevent="onSubmit">
         <p v-if="error" class="alert-danger">{{ error }}</p>
@@ -83,56 +75,10 @@ async function onSubmit() {
         Already have an account?
         <RouterLink class="link" to="/login">Log in</RouterLink>
       </p>
-    </div>
-  </main>
+  </AuthShell>
 </template>
 
 <style scoped>
-.auth-page {
-  position: relative;
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1.5rem;
-}
-
-.theme-toggle-corner {
-  position: absolute;
-  top: 1.25rem;
-  right: 1.25rem;
-}
-
-.auth-card {
-  width: 100%;
-  max-width: 380px;
-  padding: 2rem;
-  text-align: center;
-}
-
-.brand-mark {
-  display: grid;
-  place-items: center;
-  width: 40px;
-  height: 40px;
-  margin: 0 auto 1rem;
-  border-radius: var(--radius-sm);
-  background: var(--color-primary);
-  color: var(--color-on-primary);
-  font-weight: 700;
-  font-size: 1.125rem;
-}
-
-h1 {
-  font-size: 1.25rem;
-}
-
-.subtitle {
-  margin-top: 0.375rem;
-  color: var(--color-ink-faint);
-  font-size: 0.875rem;
-}
-
 .auth-form {
   display: flex;
   flex-direction: column;

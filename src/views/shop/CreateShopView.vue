@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref } from 'vue'
 import { useRouter } from 'vue-router'
+import AuthShell from '@/components/auth/AuthShell.vue'
 import { useShopStore } from '@/stores/shop'
 import { ApiError, useAuthStore } from '@/stores/auth'
 
@@ -46,11 +47,13 @@ async function onSubmit() {
 </script>
 
 <template>
-  <main class="setup-page">
-    <div class="setup-card card">
-      <p class="eyebrow">Step 2 of 2</p>
-      <h1>Set up your shop</h1>
-      <p class="subtitle">A few details and you're ready to start selling.</p>
+  <AuthShell
+    title="Set up your shop"
+    subtitle="A few details and you're ready to start selling."
+    eyebrow="Step 2 of 2"
+    wide
+    compact-brand
+  >
 
       <form class="setup-form" @submit.prevent="onSubmit">
         <p v-if="error" class="alert-danger">{{ error }}</p>
@@ -92,44 +95,10 @@ async function onSubmit() {
           {{ loading ? 'Creating…' : 'Create shop' }}
         </button>
       </form>
-    </div>
-  </main>
+  </AuthShell>
 </template>
 
 <style scoped>
-.setup-page {
-  flex: 1;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1.5rem;
-}
-
-.setup-card {
-  width: 100%;
-  max-width: 460px;
-  padding: 2rem;
-}
-
-.eyebrow {
-  font-size: 0.75rem;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--color-primary);
-}
-
-h1 {
-  margin-top: 0.375rem;
-  font-size: 1.25rem;
-}
-
-.subtitle {
-  margin-top: 0.375rem;
-  color: var(--color-ink-faint);
-  font-size: 0.875rem;
-}
-
 .setup-form {
   display: flex;
   flex-direction: column;
@@ -139,8 +108,12 @@ h1 {
 
 .field-row {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   gap: 1rem;
+}
+
+.field-row > .field {
+  min-width: 0;
 }
 
 .optional {
@@ -148,7 +121,7 @@ h1 {
   color: var(--color-ink-faint);
 }
 
-@media (max-width: 480px) {
+@media (max-width: 640px) {
   .field-row {
     grid-template-columns: 1fr;
   }
