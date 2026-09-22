@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, onUnmounted, ref, watch } from 'vue'
 import { RouterLink } from 'vue-router'
 import BaseModal from '@/components/BaseModal.vue'
 import CustomerPicker from '@/components/customers/CustomerPicker.vue'
@@ -24,11 +24,105 @@ const showCheckout = ref(false)
 const showPicker = ref(false)
 const cartOpen = ref(false)
 const searchInput = ref<HTMLInputElement | null>(null)
+const cartDrawer = ref<HTMLElement | null>(null)
+const cartTrigger = ref<HTMLButtonElement | null>(null)
 const receipt = ref<{ sale: Sale; tendered: number; change: number } | null>(null)
 
+const isMobileDrawer = ref(false)
+let drawerMediaQuery: MediaQueryList | undefined
+let previousBodyOverflow: string | null = null
+
+function lockPageScroll() {
+  if (previousBodyOverflow !== null) return
+  previousBodyOverflow = document.body.style.overflow
+  document.body.style.overflow = 'hidden'
+}
+
+function unlockPageScroll() {
+  if (previousBodyOverflow === null) return
+  document.body.style.overflow = previousBodyOverflow
+  previousBodyOverflow = null
+}
+
+function updateDrawerMode(event?: MediaQueryListEvent) {
+  const nextIsMobile = event?.matches ?? drawerMediaQuery?.matches ?? false
+
+  if (!nextIsMobile && isMobileDrawer.value) {
+    unlockPageScroll()
+    cartOpen.value = false
+  }
+
+  isMobileDrawer.value = nextIsMobile
+}
+
+function openCart() {
+  cartOpen.value = true
+}
+
+function closeCart() {
+  cartOpen.value = false
+}
+
+function onDrawerKeydown(event: KeyboardEvent) {
+  if (!isMobileDrawer.value || !cartOpen.value) return
+
+  if (event.key === 'Escape') {
+    event.preventDefault()
+    closeCart()
+    return
+  }
+
+  if (event.key !== 'Tab') return
+
+  const focusable = [...(cartDrawer.value?.querySelectorAll<HTMLElement>(
+    'button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), a[href]',
+  ) ?? [])].filter((element) => element.offsetParent !== null)
+
+  if (!focusable.length) {
+    event.preventDefault()
+    cartDrawer.value?.focus()
+    return
+  }
+
+  const first = focusable[0]
+  const last = focusable[focusable.length - 1]
+
+  if (event.shiftKey && document.activeElement === first) {
+    event.preventDefault()
+    last.focus()
+  } else if (!event.shiftKey && document.activeElement === last) {
+    event.preventDefault()
+    first.focus()
+  }
+}
+
 onMounted(async () => {
+  drawerMediaQuery = window.matchMedia('(max-width: 900px)')
+  updateDrawerMode()
+  drawerMediaQuery.addEventListener('change', updateDrawerMode)
+
   if (shopStore.currentShop) await catalog.load(shopStore.currentShop.id)
   searchInput.value?.focus()
+})
+
+onUnmounted(() => {
+  drawerMediaQuery?.removeEventListener('change', updateDrawerMode)
+  unlockPageScroll()
+})
+
+watch(cartOpen, (isOpen) => {
+  if (!isMobileDrawer.value) return
+
+  if (isOpen) {
+    lockPageScroll()
+    void nextTick(() => cartDrawer.value?.focus())
+    return
+  }
+
+  unlockPageScroll()
+  void nextTick(() => {
+    if (!showCheckout.value && !receipt.value) cartTrigger.value?.focus()
+  })
 })
 
 const categories = computed(() => [
@@ -174,22 +268,47 @@ async function share() {
 
     <button
       v-if="cart.itemCount && !cartOpen"
+      ref="cartTrigger"
       type="button"
       class="cart-bar"
-      @click="cartOpen = true"
+      aria-haspopup="dialog"
+      :aria-expanded="cartOpen"
+      aria-controls="pos-cart-drawer"
+      @click="openCart"
     >
       <span>{{ cart.itemCount }} item{{ cart.itemCount === 1 ? '' : 's' }} in cart</span>
       <strong>{{ formatUgx(cart.total) }}</strong>
     </button>
 
-    <aside class="cart card" :class="{ open: cartOpen }" aria-label="Cart">
+    <div
+      v-if="isMobileDrawer && cartOpen"
+      class="cart-scrim"
+      aria-hidden="true"
+      @click="closeCart"
+      @touchmove.prevent
+      @wheel.prevent
+    />
+
+    <aside
+      id="pos-cart-drawer"
+      ref="cartDrawer"
+      class="cart card"
+      :class="{ open: cartOpen }"
+      :role="isMobileDrawer ? 'dialog' : undefined"
+      :aria-modal="isMobileDrawer && cartOpen ? 'true' : undefined"
+      :aria-hidden="isMobileDrawer ? String(!cartOpen) : undefined"
+      :aria-labelledby="isMobileDrawer ? 'pos-cart-title' : undefined"
+      :tabindex="isMobileDrawer ? -1 : undefined"
+      aria-label="Cart"
+      @keydown="onDrawerKeydown"
+    >
       <header class="cart-head">
-        <h2>Current sale</h2>
+        <h2 id="pos-cart-title">Current sale</h2>
         <div class="cart-head-actions">
           <button v-if="cart.itemCount" type="button" class="text-btn" @click="cart.clear()">
             Clear
           </button>
-          <button type="button" class="text-btn mobile-only" @click="cartOpen = false">
+          <button type="button" class="text-btn mobile-only" @click="closeCart">
             Close
           </button>
         </div>
@@ -584,6 +703,10 @@ async function share() {
 }
 
 .line-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-weight: 600;
 }
 
@@ -641,6 +764,7 @@ async function share() {
 }
 
 .unit-select {
+  min-width: 0;
   height: 36px;
   padding: 0 0.5rem;
   border: 1px solid var(--color-border-strong);
@@ -767,6 +891,10 @@ async function share() {
   display: none;
 }
 
+.cart-scrim {
+  display: none;
+}
+
 .receipt-actions {
   display: flex;
   flex-wrap: wrap;
@@ -795,14 +923,22 @@ async function share() {
   .pos {
     grid-template-columns: 1fr;
     padding: 0.875rem;
-    padding-bottom: 5rem;
+    padding-bottom: calc(5.75rem + env(safe-area-inset-bottom));
+  }
+
+  .cart-scrim {
+    position: fixed;
+    inset: 0;
+    z-index: 40;
+    display: block;
+    background: rgba(15, 20, 25, 0.48);
   }
 
   .cart {
     position: fixed;
     inset: auto 0 0 0;
-    z-index: 40;
-    max-height: 85dvh;
+    z-index: 50;
+    max-height: min(85dvh, calc(100dvh - 1rem));
     border-radius: var(--radius-lg) var(--radius-lg) 0 0;
     transform: translateY(105%);
     transition: transform 0.2s ease;
@@ -816,9 +952,81 @@ async function share() {
     display: inline;
   }
 
+  .text-btn.mobile-only {
+    min-height: 44px;
+    padding: 0 0.5rem;
+  }
+
+  .line {
+    padding: 1rem;
+  }
+
+  .line-controls {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      'quantity remove'
+      'unit price';
+    align-items: center;
+  }
+
+  .stepper {
+    grid-area: quantity;
+    justify-self: start;
+  }
+
+  .stepper button,
+  .stepper input {
+    height: 44px;
+  }
+
+  .stepper button {
+    width: 44px;
+  }
+
+  .unit-select,
+  .unit-label {
+    grid-area: unit;
+    min-width: 0;
+    max-width: 100%;
+    min-height: 44px;
+  }
+
+  .unit-select {
+    width: fit-content;
+  }
+
+  .unit-label {
+    display: flex;
+    align-items: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .line-price {
+    grid-area: price;
+    margin-left: 0;
+    justify-self: end;
+    white-space: nowrap;
+  }
+
+  .line-remove {
+    width: 44px;
+    height: 44px;
+  }
+
+  .discount-row input {
+    min-height: 44px;
+  }
+
+  .cart-foot {
+    padding-bottom: calc(1.25rem + env(safe-area-inset-bottom));
+  }
+
   .cart-bar {
     position: fixed;
-    inset: auto 0.875rem 0.875rem 0.875rem;
+    inset: auto 0.875rem calc(0.875rem + env(safe-area-inset-bottom)) 0.875rem;
     z-index: 30;
     display: flex;
     align-items: center;

@@ -208,7 +208,7 @@ async function confirm() {
 }
 
 .method {
-  min-height: 40px;
+  min-height: 44px;
   padding: 0 0.875rem;
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
@@ -236,8 +236,8 @@ async function confirm() {
 }
 
 .row-remove {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border: 1px solid var(--color-border-strong);
   border-radius: var(--radius-sm);
   background: transparent;
@@ -253,7 +253,7 @@ async function confirm() {
 }
 
 .quick-btn {
-  min-height: 36px;
+  min-height: 44px;
   padding: 0 0.75rem;
   border: 1px solid var(--color-border);
   border-radius: 999px;
@@ -328,5 +328,29 @@ async function confirm() {
 .confirm {
   min-height: 48px;
   font-size: 1rem;
+}
+
+@media (max-width: 480px) {
+  .due-amount {
+    font-size: 1.75rem;
+  }
+
+  .method {
+    flex: 1 1 calc(50% - 0.25rem);
+    min-width: 0;
+  }
+
+  .quick-btn {
+    flex: 1 1 calc(50% - 0.25rem);
+    min-width: 0;
+  }
+
+  .summary div {
+    gap: 0.75rem;
+  }
+
+  .summary strong {
+    white-space: nowrap;
+  }
 }
 </style>
