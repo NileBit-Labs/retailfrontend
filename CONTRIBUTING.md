@@ -1,6 +1,6 @@
 # Contributing to retailfrontend
 
-Vue 3 + Vite + TypeScript app for NileBit Retail POS.
+Vue 3 + Vite + TypeScript app for NileBit POS for Retail.
 
 ## Setup
 

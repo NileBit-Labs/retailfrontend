@@ -1,6 +1,6 @@
 {
-  "name": "NileBit Retail",
-  "short_name": "NileBit",
+  "name": "NileBit POS for Retail",
+  "short_name": "NileBit POS",
   "description": "Retail management and point of sale that keeps working when the connection drops.",
   "start_url": "/",
   "scope": "/",

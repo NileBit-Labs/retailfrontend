@@ -2,6 +2,7 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { ApiError, useAuthStore } from '@/stores/auth'
 import { useShopStore } from '@/stores/shop'
 import { navGroups } from './nav'
+import { publicRegistrationEnabled } from '@/lib/beta'
 import DashboardView from '../views/DashboardView.vue'
 
 const comingSoonRoutes: RouteRecordRaw[] = navGroups
@@ -34,6 +35,7 @@ const router = createRouter({
       name: 'register',
       component: () => import('../views/auth/RegisterView.vue'),
       meta: { guestOnly: true },
+      beforeEnter: () => (publicRegistrationEnabled ? true : { name: 'login' }),
     },
     {
       path: '/setup/shop',

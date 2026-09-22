@@ -3,6 +3,7 @@ import { ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useAuthStore, ApiError } from '@/stores/auth'
 import ThemeToggle from '@/components/ThemeToggle.vue'
+import { publicRegistrationEnabled } from '@/lib/beta'
 
 const router = useRouter()
 const auth = useAuthStore()
@@ -34,8 +35,8 @@ async function onSubmit() {
 
     <div class="auth-card card">
       <div class="brand-mark">N</div>
-      <h1>Log in to NileBit Retail</h1>
-      <p class="subtitle">Run your shop from anywhere.</p>
+      <h1>Log in to NileBit POS</h1>
+      <p class="subtitle">NileBit POS for Retail</p>
 
       <form class="auth-form" @submit.prevent="onSubmit">
         <p v-if="error" class="alert-danger">{{ error }}</p>
@@ -61,7 +62,7 @@ async function onSubmit() {
         </button>
       </form>
 
-      <p class="switch">
+      <p v-if="publicRegistrationEnabled" class="switch">
         Don't have an account?
         <RouterLink class="link" to="/register">Create one</RouterLink>
       </p>

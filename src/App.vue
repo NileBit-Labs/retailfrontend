@@ -80,7 +80,7 @@ async function onLogout() {
     <aside class="sidebar" :class="{ open: sidebarOpen }" aria-label="Main menu">
       <RouterLink to="/" class="brand" @click="sidebarOpen = false">
         <span class="brand-mark">N</span>
-        <span class="brand-name">NileBit<span class="brand-name-accent">Retail</span></span>
+        <span class="brand-name">NileBit <span class="brand-name-accent">POS</span></span>
       </RouterLink>
 
       <nav class="nav">

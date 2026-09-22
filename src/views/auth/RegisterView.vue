@@ -42,7 +42,7 @@ async function onSubmit() {
     <div class="auth-card card">
       <div class="brand-mark">N</div>
       <h1>Create your account</h1>
-      <p class="subtitle">Set up NileBit Retail for your business.</p>
+      <p class="subtitle">Set up your retail business on NileBit POS.</p>
 
       <form class="auth-form" @submit.prevent="onSubmit">
         <p v-if="error" class="alert-danger">{{ error }}</p>
