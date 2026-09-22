@@ -18,6 +18,7 @@ const options: { value: Theme; label: string; title: string }[] = [
       type="button"
       role="radio"
       :aria-checked="themeStore.theme === option.value"
+      :aria-label="option.title"
       :title="option.title"
       class="theme-option"
       :class="{ active: themeStore.theme === option.value }"
@@ -62,5 +63,12 @@ const options: { value: Theme; label: string; title: string }[] = [
   background: var(--color-surface);
   color: var(--color-primary);
   box-shadow: 0 1px 2px rgba(16, 24, 40, 0.08);
+}
+
+@media (max-width: 640px) {
+  .theme-option {
+    width: 40px;
+    height: 40px;
+  }
 }
 </style>

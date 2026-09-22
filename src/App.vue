@@ -76,9 +76,15 @@ async function onLogout() {
 
 <template>
   <div v-if="showShell" class="shell">
-    <div v-if="sidebarOpen" class="scrim" @click="sidebarOpen = false" />
+    <button
+      v-if="sidebarOpen"
+      type="button"
+      class="scrim"
+      aria-label="Close menu"
+      @click="sidebarOpen = false"
+    />
 
-    <aside class="sidebar" :class="{ open: sidebarOpen }" aria-label="Main menu">
+    <aside id="main-menu" class="sidebar" :class="{ open: sidebarOpen }" aria-label="Main menu">
       <RouterLink to="/" class="brand" @click="sidebarOpen = false">
         <img class="brand-icon" :src="brandIconUrl" alt="" />
         <span class="brand-copy">
@@ -106,7 +112,14 @@ async function onLogout() {
 
     <div class="main-col">
       <header class="topbar">
-        <button class="hamburger" aria-label="Open menu" @click="sidebarOpen = true">
+        <button
+          type="button"
+          class="hamburger"
+          aria-label="Open menu"
+          aria-controls="main-menu"
+          :aria-expanded="sidebarOpen"
+          @click="sidebarOpen = true"
+        >
           <span /><span /><span />
         </button>
 
@@ -320,6 +333,7 @@ async function onLogout() {
   gap: 1rem;
   height: 64px;
   flex-shrink: 0;
+  min-width: 0;
   padding: 0 1.75rem;
   background: var(--color-surface);
   border-bottom: 1px solid var(--color-border);
@@ -329,10 +343,14 @@ async function onLogout() {
   display: flex;
   align-items: baseline;
   gap: 0.625rem;
+  flex: 1 1 auto;
   min-width: 0;
+  overflow: hidden;
 }
 
 .shop-name {
+  flex: 0 1 auto;
+  max-width: min(32vw, 360px);
   color: var(--color-ink-faint);
   font-size: 0.9375rem;
   white-space: nowrap;
@@ -345,6 +363,9 @@ async function onLogout() {
 }
 
 .page-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
   font-size: 1.0625rem;
   font-weight: 600;
   white-space: nowrap;
@@ -355,6 +376,7 @@ async function onLogout() {
   align-items: center;
   gap: 0.875rem;
   margin-left: auto;
+  min-width: 0;
   flex-shrink: 0;
 }
 
@@ -492,12 +514,17 @@ async function onLogout() {
     display: block;
     position: fixed;
     inset: 0;
+    padding: 0;
+    border: none;
     background: rgba(0, 0, 0, 0.4);
+    cursor: pointer;
     z-index: 20;
   }
 
   .hamburger {
     display: flex;
+    width: 44px;
+    height: 44px;
   }
 
   .topbar {
@@ -511,7 +538,8 @@ async function onLogout() {
   }
 
   .logout {
-    width: 38px;
+    width: 44px;
+    min-height: 44px;
     padding: 0;
     justify-content: center;
   }
@@ -527,6 +555,7 @@ async function onLogout() {
   }
 
   .topbar-actions :deep(.sync-status) {
+    min-height: 40px;
     padding: 0.5rem;
   }
 
