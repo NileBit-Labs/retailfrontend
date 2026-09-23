@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, nextTick, onMounted, ref } from 'vue'
+import { computed, nextTick, onMounted, ref, watch } from 'vue'
 import AskVisual from '@/components/ask/AskVisual.vue'
 import NavIcon from '@/components/NavIcon.vue'
 import { ApiError, apiFetch, isNetworkFailure } from '@/lib/api'
@@ -19,13 +19,14 @@ const box = ref<HTMLTextAreaElement | null>(null)
 const copied = ref<number | null>(null)
 
 let nextId = 1
+let activeShopId: number | undefined
 
-const storageKey = () => `ask_chat_${shopStore.currentShop?.id}`
+const storageKey = (shopId = activeShopId) => `ask_chat_${shopId ?? 'none'}`
 
 // The conversation survives leaving the page and coming back, but not closing the tab.
-function restore() {
+function restore(shopId = activeShopId) {
   try {
-    const saved = JSON.parse(sessionStorage.getItem(storageKey()) ?? '[]') as ChatMessage[]
+    const saved = JSON.parse(sessionStorage.getItem(storageKey(shopId)) ?? '[]') as ChatMessage[]
     messages.value = saved
     nextId = saved.reduce((max, m) => Math.max(max, m.id), 0) + 1
   } catch {
@@ -33,9 +34,9 @@ function restore() {
   }
 }
 
-function persist() {
+function persist(shopId = activeShopId) {
   try {
-    sessionStorage.setItem(storageKey(), JSON.stringify(messages.value.slice(-40)))
+    sessionStorage.setItem(storageKey(shopId), JSON.stringify(messages.value.slice(-40)))
   } catch {
     // Storage full or blocked: the chat still works for this visit.
   }
@@ -94,11 +95,24 @@ function grow() {
 function failure(question: string, e: unknown): ChatMessage {
   if (e instanceof ApiError) {
     const body = e.body as { message?: string; code?: string } | null
+    const code = body?.code
+    const message = {
+      busy: 'Ask Your Shop is busy right now. Please try again in a minute.',
+      daily_limit: "You've reached this shop's question limit for today. It resets at midnight.",
+      not_configured: 'Ask Your Shop is temporarily unavailable. Please try again later.',
+      invalid_key: 'Ask Your Shop is temporarily unavailable. Please try again later.',
+      model_unavailable: 'Ask Your Shop is temporarily unavailable. Please try again later.',
+      unavailable: 'Ask Your Shop could not be reached just now. Please try again shortly.',
+      malformed_response: 'Ask Your Shop returned an invalid response. Please try again.',
+      ungrounded_response: "I couldn't verify that from your shop records. Please ask a more specific question.",
+      bad_request: "Ask Your Shop couldn't complete that question. Try asking it another way.",
+    }[code ?? '']
+
     return {
       id: nextId++,
       role: 'assistant',
       text: '',
-      error: { message: body?.message ?? e.message, code: body?.code, question },
+      error: { message: message ?? 'Ask Your Shop could not complete that question. Please try again.', code, question },
     }
   }
   const offline = isNetworkFailure(e)
@@ -186,10 +200,28 @@ async function copy(message: ChatMessage) {
 }
 
 onMounted(() => {
+  activeShopId = shopStore.currentShop?.id
   restore()
   void loadStatus()
   void scrollDown()
 })
+
+watch(
+  () => shopStore.currentShop?.id,
+  (shopId, previousShopId) => {
+    if (shopId === previousShopId) return
+
+    persist(previousShopId)
+    activeShopId = shopId
+    messages.value = []
+    nextId = 1
+    restore(shopId)
+    input.value = ''
+    grow()
+    void scrollDown()
+    void loadStatus()
+  },
+)
 </script>
 
 <template>
@@ -217,19 +249,8 @@ onMounted(() => {
         <p v-if="statusError" class="alert-danger">{{ statusError }}</p>
 
         <div v-if="status && !status.enabled" class="setup">
-          <h2>Ask Your Shop isn't switched on yet</h2>
-          <template v-if="status.is_owner">
-            <p>It needs a Google Gemini key, kept only on your server:</p>
-            <ol>
-              <li>Create a key at <strong>aistudio.google.com/apikey</strong>.</li>
-              <li>
-                Put it in the backend's <code>.env</code> file as
-                <code>GEMINI_API_KEY=your-key</code>. Never paste it into chat or the app.
-              </li>
-              <li>Run <code>php artisan ask:check</code> to test it, then restart the backend.</li>
-            </ol>
-          </template>
-          <p v-else>Ask the shop owner to switch it on.</p>
+          <h2>Ask Your Shop is temporarily unavailable</h2>
+          <p>Please try again later. If it continues, contact NileBit support.</p>
         </div>
 
         <div v-else-if="!messages.length && status" class="welcome">
@@ -262,7 +283,7 @@ onMounted(() => {
               <div v-if="m.error" class="failed">
                 <p>{{ m.error.message }}</p>
                 <button
-                  v-if="m.error.code !== 'not_configured' && m.error.code !== 'daily_limit'"
+                  v-if="!['not_configured', 'invalid_key', 'model_unavailable', 'daily_limit'].includes(m.error.code ?? '')"
                   type="button"
                   class="link"
                   @click="retry(m)"
