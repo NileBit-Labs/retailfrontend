@@ -165,7 +165,7 @@ const router = createRouter({
       path: '/ask',
       name: 'ask',
       component: () => import('../views/ask/AskView.vue'),
-      meta: { requiresAuth: true, title: 'Ask Your Shop', managerOnly: true },
+      meta: { requiresAuth: true, title: 'Ask NileBot', managerOnly: true },
     },
     {
       path: '/shifts',

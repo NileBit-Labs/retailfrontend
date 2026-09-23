@@ -45,19 +45,22 @@ interface RequestOptions {
   timeoutMs?: number
 }
 
-export async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {
+function requestHeaders(options: RequestOptions): Record<string, string> {
   const headers: Record<string, string> = {
     Accept: 'application/json',
     'Content-Type': 'application/json',
   }
-
   const token = localStorage.getItem('auth_token')
   if (token) headers.Authorization = `Bearer ${token}`
-
   const shopId =
     options.shopId ??
     (JSON.parse(localStorage.getItem('current_shop') ?? 'null')?.id as number | undefined)
   if (shopId) headers['X-Shop-Id'] = String(shopId)
+  return headers
+}
+
+export async function apiFetch<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const headers = requestHeaders(options)
 
   const controller = new AbortController()
   const timer = setTimeout(() => controller.abort(), options.timeoutMs ?? REQUEST_TIMEOUT_MS)
@@ -87,6 +90,28 @@ export async function apiFetch<T>(path: string, options: RequestOptions = {}): P
   }
 
   return data as T
+}
+
+/** Download a server-authorized report without exposing the auth token in a URL. */
+export async function apiDownload(path: string, filename: string): Promise<void> {
+  const response = await fetch(`${BASE_URL}${path}`, { headers: requestHeaders({}) })
+  if (!response.ok) {
+    const contentType = response.headers.get('content-type') ?? ''
+    throw new ApiError(
+      response.status,
+      contentType.includes('application/json') ? await response.json() : null,
+    )
+  }
+
+  const blob = await response.blob()
+  const url = URL.createObjectURL(blob)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = filename
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
 }
 
 // Laravel validation failures carry a generic top-level message ("... and 2

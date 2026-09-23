@@ -5,7 +5,6 @@ import StatTile from '@/components/reports/StatTile.vue'
 import { apiErrorMessage, apiFetch } from '@/lib/api'
 import { longDay } from '@/lib/dates'
 import { formatUgx } from '@/lib/format'
-import { downloadCsv } from '@/lib/tableExport'
 import type { DebtReport } from '@/types/reports'
 
 const report = ref<DebtReport | null>(null)
@@ -35,31 +34,6 @@ const bucketNames: Record<string, string> = {
   '90+': 'Over 90 days',
 }
 const bucketColors = ['var(--chart-1)', 'var(--chart-2)', 'var(--chart-5)', 'var(--chart-negative)']
-
-function exportCsv() {
-  if (!report.value) return
-  downloadCsv(
-    `customer-debt-${report.value.as_of}.csv`,
-    [
-      'Customer',
-      'Phone',
-      'Owes (UGX)',
-      'Unpaid sales',
-      'Oldest debt (days)',
-      'Overdue (UGX)',
-      'Days overdue',
-    ],
-    report.value.customers.map((c) => [
-      c.name,
-      c.phone,
-      c.balance,
-      c.open_sales,
-      c.oldest_debt_days,
-      c.overdue,
-      c.overdue ? c.days_overdue : null,
-    ]),
-  )
-}
 </script>
 
 <template>
@@ -118,9 +92,9 @@ function exportCsv() {
       <section class="card rp-panel">
         <div class="rp-panel-head">
           <h2>Who owes you</h2>
-          <button v-if="report.customers.length" type="button" class="rp-quiet" @click="exportCsv">
-            Download CSV
-          </button>
+          <span v-if="report.customers.length" class="rp-meta"
+            >Use Export above to download this data.</span
+          >
         </div>
         <p v-if="!report.customers.length" class="rp-empty">No customer owes anything.</p>
         <div v-else class="rp-scroll">

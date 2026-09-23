@@ -4,14 +4,16 @@ import BarChart, { type BarPoint } from '@/components/reports/BarChart.vue'
 import PeriodPicker from '@/components/reports/PeriodPicker.vue'
 import StatTile from '@/components/reports/StatTile.vue'
 import { apiErrorMessage, apiFetch } from '@/lib/api'
-import { dayMonth, longDay, shortDay, startOfMonth, weekdayShort } from '@/lib/dates'
+import { dayMonth, longDay, shortDay, weekdayShort } from '@/lib/dates'
 import { formatQuantity, formatUgx } from '@/lib/format'
-import { downloadCsv } from '@/lib/tableExport'
 import type { DateRange, ProfitReport } from '@/types/reports'
 
-const props = defineProps<{ today: string }>()
-
-const range = ref<DateRange>({ from: startOfMonth(props.today), to: props.today })
+const props = defineProps<{ today: string; modelValue: DateRange }>()
+const emit = defineEmits<{ 'update:modelValue': [value: DateRange] }>()
+const range = computed({
+  get: () => props.modelValue,
+  set: (value) => emit('update:modelValue', value),
+})
 const report = ref<ProfitReport | null>(null)
 const loading = ref(false)
 const error = ref('')
@@ -53,15 +55,6 @@ const period = computed(() =>
 )
 
 const pct = (v: number | null) => (v === null ? '—' : `${v}%`)
-
-function exportCsv() {
-  if (!report.value) return
-  downloadCsv(
-    `profit-by-product-${range.value.from}-to-${range.value.to}.csv`,
-    ['Product', 'Quantity sold', 'Revenue (UGX)', 'Cost (UGX)', 'Profit (UGX)', 'Margin (%)'],
-    report.value.products.map((p) => [p.name, p.quantity, p.revenue, p.cost, p.profit, p.margin]),
-  )
-}
 </script>
 
 <template>
@@ -165,7 +158,7 @@ function exportCsv() {
       <section class="card rp-panel">
         <div class="rp-panel-head">
           <h2>Profit by product</h2>
-          <button type="button" class="rp-quiet" @click="exportCsv">Download CSV</button>
+          <span class="rp-meta">Use Export above to download this data.</span>
         </div>
         <p v-if="!report.products.length" class="rp-empty">Nothing sold in this period.</p>
         <div v-else class="rp-scroll">

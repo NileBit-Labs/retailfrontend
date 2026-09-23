@@ -97,22 +97,27 @@ function failure(question: string, e: unknown): ChatMessage {
     const body = e.body as { message?: string; code?: string } | null
     const code = body?.code
     const message = {
-      busy: 'Ask Your Shop is busy right now. Please try again in a minute.',
+      busy: 'Ask NileBot is busy right now. Please try again in a minute.',
       daily_limit: "You've reached this shop's question limit for today. It resets at midnight.",
-      not_configured: 'Ask Your Shop is temporarily unavailable. Please try again later.',
-      invalid_key: 'Ask Your Shop is temporarily unavailable. Please try again later.',
-      model_unavailable: 'Ask Your Shop is temporarily unavailable. Please try again later.',
-      unavailable: 'Ask Your Shop could not be reached just now. Please try again shortly.',
-      malformed_response: 'Ask Your Shop returned an invalid response. Please try again.',
-      ungrounded_response: "I couldn't verify that from your shop records. Please ask a more specific question.",
-      bad_request: "Ask Your Shop couldn't complete that question. Try asking it another way.",
+      not_configured: 'Ask NileBot is temporarily unavailable. Please try again later.',
+      invalid_key: 'Ask NileBot is temporarily unavailable. Please try again later.',
+      model_unavailable: 'Ask NileBot is temporarily unavailable. Please try again later.',
+      unavailable: 'Ask NileBot could not be reached just now. Please try again shortly.',
+      malformed_response: 'Ask NileBot returned an invalid response. Please try again.',
+      ungrounded_response:
+        "I couldn't verify that from your shop records. Please ask a more specific question.",
+      bad_request: "Ask NileBot couldn't complete that question. Try asking it another way.",
     }[code ?? '']
 
     return {
       id: nextId++,
       role: 'assistant',
       text: '',
-      error: { message: message ?? 'Ask Your Shop could not complete that question. Please try again.', code, question },
+      error: {
+        message: message ?? 'Ask NileBot could not complete that question. Please try again.',
+        code,
+        question,
+      },
     }
   }
   const offline = isNetworkFailure(e)
@@ -122,7 +127,7 @@ function failure(question: string, e: unknown): ChatMessage {
     text: '',
     error: {
       message: offline
-        ? "Couldn't reach the server. Ask Your Shop needs an internet connection."
+        ? "Couldn't reach the server. Ask NileBot needs an internet connection."
         : 'That took too long. Try a narrower question, for example one product or one week.',
       question,
     },
@@ -231,7 +236,7 @@ watch(
         <div class="title">
           <span class="badge"><NavIcon name="ask" /></span>
           <div>
-            <h1>Ask Your Shop</h1>
+            <h1>Ask NileBot</h1>
             <p>Your assistant for sales, stock, debts and money</p>
           </div>
         </div>
@@ -249,7 +254,7 @@ watch(
         <p v-if="statusError" class="alert-danger">{{ statusError }}</p>
 
         <div v-if="status && !status.enabled" class="setup">
-          <h2>Ask Your Shop is temporarily unavailable</h2>
+          <h2>Ask NileBot is temporarily unavailable</h2>
           <p>Please try again later. If it continues, contact NileBit support.</p>
         </div>
 
@@ -283,7 +288,11 @@ watch(
               <div v-if="m.error" class="failed">
                 <p>{{ m.error.message }}</p>
                 <button
-                  v-if="!['not_configured', 'invalid_key', 'model_unavailable', 'daily_limit'].includes(m.error.code ?? '')"
+                  v-if="
+                    !['not_configured', 'invalid_key', 'model_unavailable', 'daily_limit'].includes(
+                      m.error.code ?? '',
+                    )
+                  "
                   type="button"
                   class="link"
                   @click="retry(m)"
@@ -806,6 +815,41 @@ code {
 
   .chat {
     min-height: 70vh;
+  }
+}
+
+@media (max-width: 560px) {
+  .ask {
+    padding: 0.625rem;
+  }
+  .chat-head {
+    padding: 0.75rem;
+  }
+  .title {
+    min-width: 0;
+  }
+  .title > div {
+    min-width: 0;
+  }
+  .title p {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .thread {
+    gap: 1rem;
+    padding: 1rem 0.75rem;
+  }
+  .composer {
+    gap: 0.5rem;
+    padding: 0.75rem;
+  }
+  .composer .btn {
+    min-width: 64px;
+    padding: 0 0.75rem;
+  }
+  .meta {
+    gap: 0.625rem;
   }
 }
 </style>

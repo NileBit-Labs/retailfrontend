@@ -111,10 +111,10 @@ export const navGroups: NavGroup[] = [
     ],
   },
   {
-    label: 'Intelligence',
+    label: 'AI',
     items: [
       {
-        label: 'Ask Your Shop',
+        label: 'Ask NileBot',
         to: '/ask',
         icon: 'ask',
         owner: 'Assistant',

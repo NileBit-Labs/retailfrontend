@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
 import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useShopStore } from '@/stores/shop'
@@ -16,6 +16,8 @@ const shopStore = useShopStore()
 const router = useRouter()
 const route = useRoute()
 const sidebarOpen = ref(false)
+const profileOpen = ref(false)
+const profileButton = ref<HTMLButtonElement | null>(null)
 const sync = useSyncStore()
 const visibleGroups = computed(() =>
   navGroups
@@ -49,6 +51,24 @@ watch(
   () => route.path,
   () => scroller.value?.scrollTo({ top: 0 }),
 )
+
+watch(sidebarOpen, (open) => document.body.classList.toggle('drawer-open', open))
+
+function closeProfile(restoreFocus = false) {
+  profileOpen.value = false
+  if (restoreFocus) void nextTick(() => profileButton.value?.focus())
+}
+
+function onDocumentPointer(event: PointerEvent) {
+  const target = event.target as HTMLElement | null
+  if (!target?.closest('.profile-wrap')) closeProfile()
+}
+
+document.addEventListener('pointerdown', onDocumentPointer)
+onBeforeUnmount(() => {
+  document.removeEventListener('pointerdown', onDocumentPointer)
+  document.body.classList.remove('drawer-open')
+})
 
 const showShell = computed(() => auth.isAuthenticated && !route.meta.standalone)
 
@@ -133,23 +153,37 @@ async function onLogout() {
 
         <div class="topbar-actions">
           <SyncStatus />
-          <ThemeToggle />
-          <span class="divider" aria-hidden="true" />
-          <div class="user" :title="auth.user?.email">
-            <span class="avatar" aria-hidden="true">{{ initials }}</span>
-            <span class="user-text">
-              <strong>{{ auth.user?.name }}</strong>
-              <small>{{ roleLabel }}</small>
-            </span>
+          <div class="profile-wrap" @keydown.esc="closeProfile(true)">
+            <button
+              ref="profileButton"
+              type="button"
+              class="user"
+              :title="auth.user?.email"
+              :aria-expanded="profileOpen"
+              aria-haspopup="menu"
+              aria-label="Open account menu"
+              @click="profileOpen = !profileOpen"
+            >
+              <span class="avatar" aria-hidden="true">{{ initials }}</span>
+              <span class="user-text">
+                <strong>{{ auth.user?.name }}</strong>
+                <small>{{ roleLabel }}</small>
+              </span>
+            </button>
+            <div v-if="profileOpen" class="profile-menu" role="menu" aria-label="Account menu">
+              <p class="profile-email">{{ auth.user?.email }}</p>
+              <RouterLink to="/settings" role="menuitem" @click="closeProfile"
+                >My profile &amp; settings</RouterLink
+              >
+              <RouterLink v-if="auth.canManage" to="/users" role="menuitem" @click="closeProfile"
+                >Staff management</RouterLink
+              >
+              <div class="menu-theme"><span>Appearance</span><ThemeToggle /></div>
+              <button type="button" role="menuitem" class="menu-logout" @click="onLogout">
+                Log out
+              </button>
+            </div>
           </div>
-          <button type="button" class="logout" @click="onLogout">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M9 4H6a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h3" />
-              <polyline points="16 8 20 12 16 16" />
-              <line x1="20" y1="12" x2="9" y2="12" />
-            </svg>
-            <span class="logout-label">Log out</span>
-          </button>
         </div>
       </header>
 
@@ -380,16 +414,26 @@ async function onLogout() {
   flex-shrink: 0;
 }
 
-.divider {
-  width: 1px;
-  height: 28px;
-  background: var(--color-border);
+.profile-wrap {
+  position: relative;
 }
 
 .user {
   display: flex;
   align-items: center;
   gap: 0.625rem;
+  min-height: 44px;
+  padding: 4px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--color-ink);
+  cursor: pointer;
+}
+
+.user:hover,
+.user:focus-visible {
+  background: var(--color-canvas);
 }
 
 .avatar {
@@ -421,37 +465,61 @@ async function onLogout() {
   font-size: 0.75rem;
 }
 
-.logout {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  min-height: 38px;
-  padding: 0 0.875rem;
-  border: 1px solid var(--color-border-strong);
-  border-radius: var(--radius-sm);
+.profile-menu {
+  position: absolute;
+  z-index: 45;
+  top: calc(100% + 0.5rem);
+  right: 0;
+  display: grid;
+  width: min(300px, calc(100vw - 1.5rem));
+  padding: 0.375rem;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
   background: var(--color-surface);
+  box-shadow: var(--shadow-card);
+}
+.profile-menu a,
+.menu-logout {
+  display: flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 0.75rem;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--color-ink);
+  font: inherit;
+  text-align: left;
+  text-decoration: none;
+  cursor: pointer;
+}
+.profile-menu a:hover,
+.menu-logout:hover {
+  background: var(--color-canvas);
+}
+.profile-email {
+  overflow: hidden;
+  padding: 0.5rem 0.75rem;
+  color: var(--color-ink-faint);
+  font-size: 0.75rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.menu-theme {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-height: 48px;
+  margin: 0.25rem 0;
+  padding: 0.25rem 0.75rem;
+  border-top: 1px solid var(--color-border);
+  border-bottom: 1px solid var(--color-border);
   color: var(--color-ink-soft);
   font-size: 0.875rem;
-  font-weight: 500;
-  cursor: pointer;
-  transition:
-    border-color 0.12s,
-    color 0.12s;
 }
-
-.logout:hover {
-  border-color: var(--color-danger);
+.menu-logout {
   color: var(--color-danger);
-}
-
-.logout svg {
-  width: 18px;
-  height: 18px;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.75;
-  stroke-linecap: round;
-  stroke-linejoin: round;
 }
 
 .content {
@@ -531,18 +599,6 @@ async function onLogout() {
     gap: 0.5rem;
     padding: 0 0.75rem;
   }
-
-  .logout-label,
-  .divider {
-    display: none;
-  }
-
-  .logout {
-    width: 44px;
-    min-height: 44px;
-    padding: 0;
-    justify-content: center;
-  }
 }
 
 @media (max-width: 560px) {
@@ -559,8 +615,19 @@ async function onLogout() {
     padding: 0.5rem;
   }
 
-  .avatar {
-    display: none;
+  .topbar {
+    height: 56px;
   }
+  .profile-menu {
+    position: fixed;
+    top: auto;
+    right: 0.75rem;
+    bottom: 0.75rem;
+    width: min(360px, calc(100vw - 1.5rem));
+  }
+}
+
+:global(body.drawer-open) {
+  overflow: hidden;
 }
 </style>

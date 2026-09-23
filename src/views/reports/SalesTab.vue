@@ -6,14 +6,16 @@ import PeriodPicker from '@/components/reports/PeriodPicker.vue'
 import StatTile from '@/components/reports/StatTile.vue'
 import { apiErrorMessage, apiFetch } from '@/lib/api'
 import { METHOD_COLORS, METHOD_LABELS } from '@/lib/chart'
-import { dayMonth, longDay, shortDay, startOfMonth, weekdayShort } from '@/lib/dates'
+import { dayMonth, longDay, shortDay, weekdayShort } from '@/lib/dates'
 import { formatQuantity, formatUgx } from '@/lib/format'
-import { downloadCsv } from '@/lib/tableExport'
 import type { DateRange, SalesReport } from '@/types/reports'
 
-const props = defineProps<{ today: string }>()
-
-const range = ref<DateRange>({ from: startOfMonth(props.today), to: props.today })
+const props = defineProps<{ today: string; modelValue: DateRange }>()
+const emit = defineEmits<{ 'update:modelValue': [value: DateRange] }>()
+const range = computed({
+  get: () => props.modelValue,
+  set: (value) => emit('update:modelValue', value),
+})
 const report = ref<SalesReport | null>(null)
 const loading = ref(false)
 const error = ref('')
@@ -60,15 +62,6 @@ const period = computed(() =>
     ? longDay(range.value.from)
     : `${longDay(range.value.from)} – ${longDay(range.value.to)}`,
 )
-
-function exportCsv() {
-  if (!report.value) return
-  downloadCsv(
-    `sales-${range.value.from}-to-${range.value.to}.csv`,
-    ['Date', 'Sales', 'Gross sales (UGX)', 'Refunds (UGX)', 'Net sales (UGX)'],
-    report.value.daily.map((d) => [d.date, d.sales_count, d.gross_sales, d.refunds, d.net_sales]),
-  )
-}
 </script>
 
 <template>
@@ -177,7 +170,7 @@ function exportCsv() {
       <section class="card rp-panel">
         <div class="rp-panel-head">
           <h2>Day by day</h2>
-          <button type="button" class="rp-quiet" @click="exportCsv">Download CSV</button>
+          <span class="rp-meta">Use Export above to download this data.</span>
         </div>
         <div class="rp-scroll">
           <table class="rp-table">
