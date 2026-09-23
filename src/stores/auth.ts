@@ -31,6 +31,10 @@ interface AuthResponse {
   token: string
 }
 
+interface PasswordResetResponse {
+  message: string
+}
+
 const USER_KEY = 'auth_user'
 
 // The signed-in user is kept on the device so that reopening the app with no connection still
@@ -105,6 +109,25 @@ export const useAuthStore = defineStore('auth', () => {
     setSession(response)
   }
 
+  async function forgotPassword(email: string) {
+    return apiFetch<PasswordResetResponse>('/auth/forgot-password', {
+      method: 'POST',
+      body: { email },
+    })
+  }
+
+  async function resetPassword(payload: {
+    email: string
+    token: string
+    password: string
+    password_confirmation: string
+  }) {
+    return apiFetch<PasswordResetResponse>('/auth/reset-password', {
+      method: 'POST',
+      body: payload,
+    })
+  }
+
   async function logout() {
     try {
       await apiFetch('/auth/logout', { method: 'POST' })
@@ -128,6 +151,8 @@ export const useAuthStore = defineStore('auth', () => {
     isOwner,
     register,
     login,
+    forgotPassword,
+    resetPassword,
     logout,
     fetchMe,
     clearSession,

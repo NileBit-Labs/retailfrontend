@@ -49,6 +49,8 @@ async function onSubmit() {
           />
         </div>
 
+        <RouterLink class="link forgot-link" to="/forgot-password">Forgot password?</RouterLink>
+
         <button type="submit" class="btn btn-primary btn-block" :disabled="loading">
           {{ loading ? 'Logging in…' : 'Log in' }}
         </button>
@@ -74,5 +76,11 @@ async function onSubmit() {
   margin-top: 1.5rem;
   font-size: 0.875rem;
   color: var(--color-ink-soft);
+}
+
+.forgot-link {
+  align-self: flex-end;
+  margin-top: -0.5rem;
+  font-size: 0.875rem;
 }
 </style>
