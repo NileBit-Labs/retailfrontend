@@ -4,16 +4,7 @@ import { useRouter } from 'vue-router'
 import AuthShell from '@/components/auth/AuthShell.vue'
 import { useShopStore } from '@/stores/shop'
 import { ApiError, useAuthStore } from '@/stores/auth'
-
-const BUSINESS_TYPES = [
-  { value: 'small_shop', label: 'Small retail shop / mini-mart' },
-  { value: 'hardware', label: 'Hardware shop' },
-  { value: 'boutique', label: 'Boutique / clothing store' },
-  { value: 'electronics', label: 'Electronics / phone accessories' },
-  { value: 'wholesaler', label: 'Wholesaler' },
-  { value: 'pharmacy', label: 'Pharmacy' },
-  { value: 'supermarket', label: 'Mini-supermarket / supermarket' },
-]
+import { RETAIL_BUSINESS_TYPES } from '@/lib/businessTypes'
 
 const router = useRouter()
 const shopStore = useShopStore()
@@ -48,8 +39,8 @@ async function onSubmit() {
 
 <template>
   <AuthShell
-    title="Set up your shop"
-    subtitle="A few details and you're ready to start selling."
+    title="Set up your outlet"
+    subtitle="This is the physical or operating location under your business."
     eyebrow="Step 2 of 2"
     wide
     compact-brand
@@ -59,13 +50,13 @@ async function onSubmit() {
         <p v-if="error" class="alert-danger">{{ error }}</p>
 
         <div class="field">
-          <label for="name">Shop name</label>
+          <label for="name">Outlet / branch name</label>
           <input
             id="name"
             v-model="name"
             type="text"
             required
-            placeholder="e.g. Kampala Road Shop"
+            placeholder="Kampala Road Branch"
           />
         </div>
 
@@ -73,7 +64,7 @@ async function onSubmit() {
           <label for="business_type">Business type</label>
           <select id="business_type" v-model="businessType" required>
             <option value="" disabled>Choose one</option>
-            <option v-for="type in BUSINESS_TYPES" :key="type.value" :value="type.value">
+            <option v-for="type in RETAIL_BUSINESS_TYPES" :key="type.value" :value="type.value">
               {{ type.label }}
             </option>
           </select>
@@ -92,7 +83,7 @@ async function onSubmit() {
         </div>
 
         <button type="submit" class="btn btn-primary btn-block" :disabled="loading">
-          {{ loading ? 'Creating…' : 'Create shop' }}
+          {{ loading ? 'Creating…' : 'Create outlet' }}
         </button>
       </form>
   </AuthShell>

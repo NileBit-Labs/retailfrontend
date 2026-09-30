@@ -1,0 +1,15 @@
+export const RETAIL_BUSINESS_TYPES = [
+  { value: 'general_retail', label: 'General retail / mini-mart' },
+  { value: 'supermarket_grocery', label: 'Supermarket / grocery' },
+  { value: 'wholesale', label: 'Wholesale' },
+  { value: 'fashion_clothing', label: 'Fashion / clothing' },
+  { value: 'electronics_accessories', label: 'Electronics / phone accessories' },
+  { value: 'hardware_building_materials', label: 'Hardware / building materials' },
+  { value: 'pharmacy_health_retail', label: 'Pharmacy / health retail' },
+  { value: 'beauty_cosmetics_retail', label: 'Beauty / cosmetics retail' },
+  { value: 'bookshop_stationery', label: 'Bookshop / stationery' },
+  { value: 'home_household_goods', label: 'Home / household goods' },
+  { value: 'auto_parts_accessories', label: 'Auto parts / accessories' },
+  { value: 'agriculture_farm_supplies', label: 'Agriculture / farm supplies' },
+  { value: 'other_retail', label: 'Other retail' },
+] as const
