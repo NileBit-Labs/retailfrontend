@@ -96,6 +96,8 @@ export interface ProfitReport {
     gross_profit: number
     margin: number | null
     expenses: number
+    stock_losses?: number
+    net_profit?: number
     operating_profit: number
   }
   daily: {
@@ -104,6 +106,8 @@ export interface ProfitReport {
     cost_of_goods: number
     gross_profit: number
     expenses: number
+    stock_losses?: number
+    net_profit?: number
     operating_profit: number
   }[]
   expenses: { category: string; amount: number }[]

@@ -65,7 +65,7 @@ const pct = (v: number | null) => (v === null ? '—' : `${v}%`)
     <p v-if="!report && loading" class="rp-empty">Working out the figures…</p>
 
     <template v-if="report && s">
-      <section class="rp-tiles" :class="{ dim: loading }">
+      <section class="rp-tiles" :class="{ dim: loading, three: s.net_profit !== undefined }">
         <StatTile
           label="Net sales"
           :value="formatUgx(s.net_sales)"
@@ -91,6 +91,21 @@ const pct = (v: number | null) => (v === null ? '—' : `${v}%`)
           :hint="`${formatUgx(s.expenses)} of expenses`"
           :trend="s.operating_profit > 0 ? 'up' : s.operating_profit < 0 ? 'down' : null"
           icon="expenses"
+        />
+        <StatTile
+          v-if="s.stock_losses !== undefined"
+          label="Damaged / lost stock"
+          :value="formatUgx(s.stock_losses)"
+          hint="Written off at its recorded cost"
+          icon="inventory"
+        />
+        <StatTile
+          v-if="s.net_profit !== undefined"
+          label="Net profit"
+          :value="formatUgx(s.net_profit)"
+          :hint="`After expenses and ${formatUgx(s.stock_losses ?? 0)} of damaged/lost stock`"
+          :trend="s.net_profit > 0 ? 'up' : s.net_profit < 0 ? 'down' : null"
+          icon="reports"
         />
       </section>
 
@@ -150,6 +165,16 @@ const pct = (v: number | null) => (v === null ? '—' : `${v}%`)
                   {{ formatUgx(s.operating_profit) }}
                 </td>
               </tr>
+              <tr v-if="s.stock_losses !== undefined">
+                <td>− Damaged / lost stock</td>
+                <td class="num">{{ formatUgx(s.stock_losses) }}</td>
+              </tr>
+              <tr v-if="s.net_profit !== undefined">
+                <td class="strong">Net profit</td>
+                <td class="num strong" :class="{ neg: s.net_profit < 0 }">
+                  {{ formatUgx(s.net_profit) }}
+                </td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -191,7 +216,8 @@ const pct = (v: number | null) => (v === null ? '—' : `${v}%`)
         <b>How this is worked out.</b> Cost uses what each item cost when it was sold, so changing a
         cost price later never rewrites past profit. Goods that come back and go on the shelf give
         their cost back; damaged returns don't, so they show as a real loss. Expenses count on the
-        date written on the expense. Showing the 50 most profitable products.
+        date written on the expense. Net profit also deducts standalone damaged/lost stock at its
+        recorded cost. Showing the 50 most profitable products.
       </p>
     </template>
   </div>
